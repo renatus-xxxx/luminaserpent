@@ -1,0 +1,47 @@
+# Makefile.linux - Linux build for LUMINA SERPENT (MSX2/MSX2+ / z88dk)
+#
+# Flow (same shape as STAR BREAKER's Makefile.linux):
+#   zcc +msx -create-app -O3 -subtype=msxdos -DMSX -lm \
+#       src/main.c src/msxclib.c src/msxalib.c -bn LUMINA.COM
+#   python3 tools/make_dsk.py <try16 template DSK> LUMINA.COM LUMINA.DSK
+#
+# Libraries: msxalib.{h,c} / msxclib.{h,c} by yamayamaru
+# (yamayamaru-storage-place, source-code_2023-09-30).
+# NOTE: msxalib.c GETSTAT carries a local patch (B = 0 forced on
+# its VDP port accesses); see the comment at GETSTAT in the source.
+
+Z88DK_DIR ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../z88dk)
+export ZCCCFG := $(Z88DK_DIR)/lib/config
+export PATH   := $(Z88DK_DIR)/bin:$(PATH)
+
+BUILD  := build-linux
+TARGET := $(BUILD)/LUMINA.COM
+DSK    := $(BUILD)/LUMINA.DSK
+SRCS   := src/main.c src/msxclib.c src/msxalib.c
+HDRS   := src/msxalib.h src/msxclib.h src/font.h src/title_img.h
+DSK_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))../try16/bin/TRY16.DSK
+DSK_TOOL := tools/make_dsk.py
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS) $(HDRS)
+	mkdir -p $(BUILD)
+	rm -f $(BUILD)/LUMINA.img
+	cd $(BUILD) && zcc +msx -create-app -O3 -subtype=msxdos -DMSX -lm -I../src ../src/main.c ../src/msxclib.c ../src/msxalib.c -bn LUMINA.COM
+	rm -f $(BUILD)/LUMINA.img
+
+dsk: $(DSK)
+
+$(DSK): $(TARGET) $(DSK_TEMPLATE) $(DSK_TOOL)
+	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(TARGET) $(DSK)
+
+bench: $(SRCS) $(HDRS)
+	mkdir -p $(BUILD)
+	cd $(BUILD) && zcc +msx -create-app -O3 -subtype=msxdos -DMSX -DBENCH -lm -I../src ../src/main.c ../src/msxclib.c ../src/msxalib.c -bn LUMINA_BENCH.COM
+	rm -f $(BUILD)/LUMINA_BENCH.img
+	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(BUILD)/LUMINA_BENCH.COM $(BUILD)/LUMINA_BENCH.DSK
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all dsk clean bench

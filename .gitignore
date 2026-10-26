@@ -1,0 +1,11 @@
+# development / verification work areas (kept locally, not published)
+debug-openmsx/
+build-*/
+diag/
+repro/
+variants/
+design/
+images/
+DESIGN.md
+tools/gen_title_image.py
+*.avi
