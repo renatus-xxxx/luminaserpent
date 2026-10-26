@@ -1,6 +1,6 @@
 [English version](./README.md)
 
-# luminaserpent-msx
+# luminaserpent
 
 **LUMINA SERPENT** は **MSX2 / MSX2+ / MSX turboR** 用の
 オリジナル横スクロールシューティングです。z88dk（C言語）で
@@ -21,7 +21,7 @@
 
 ## プレイ / ダウンロード
 
-- [WebMSX で遊ぶ (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent-msx/main/dist/LUMINA.DSK&FAST_BOOT)
+- [WebMSX で遊ぶ (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
 - [LUMINA.DSK](dist/LUMINA.DSK) — 起動可能な 720KB ディスクイメージ（自動起動）
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
@@ -46,10 +46,6 @@ MD5 `2b697ee2656054d2d0ebbf5ef1772a88`。
 - **画面分割** — ライン割り込みで HUD（スコアと RESONANCE
   ゲージ）と装備バンドを固定し、その間のプレイ画面を描画
   します。
-- **何も消えません** — 論理スプライトを最大80枚まで扱い、
-  ハードウェアの32プレーンへ回転ウィンドウで登録します。
-  混み合ったボス戦でも、後から登録したスプライトが黙って
-  消えるのではなく、全てが描かれて全てが公平にちらつきます。
 - **PSG の音楽と効果音**（タイトル / 通常面 / ボスの
   3シーン）。
 - デモベンチマーク: MSX turboR で約48fps。

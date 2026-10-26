@@ -1,6 +1,6 @@
 [日本語版はこちら](./README.ja.md)
 
-# luminaserpent-msx
+# luminaserpent
 
 **LUMINA SERPENT** is an original side-scrolling shooter for
 **MSX2 / MSX2+ / MSX turboR**, written in C with z88dk and shipped
@@ -22,7 +22,7 @@ shielded by four orbiting shards.
 
 ## Play / Download
 
-- [Play on WebMSX (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent-msx/main/dist/LUMINA.DSK&FAST_BOOT)
+- [Play on WebMSX (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
@@ -47,11 +47,6 @@ MD5 `2b697ee2656054d2d0ebbf5ef1772a88`.
 - **Split screen** — a line-interrupt keeps the HUD (score and
   RESONANCE gauge) and the equipment band fixed while the
   playfield in between does its work.
-- **Nothing is ever dropped** — the game tracks up to 80
-  logical sprites and windows them onto the 32 hardware
-  planes in rotation, so in a crowded boss fight everything
-  is drawn and everything flickers fairly, instead of the
-  last-registered sprites silently vanishing.
 - **PSG music and effects**, with separate scenes for the
   title, the stage and the boss.
 - Demo benchmark: about 48 fps on MSX turboR.
