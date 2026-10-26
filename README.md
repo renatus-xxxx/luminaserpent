@@ -22,7 +22,7 @@ shielded by four orbiting shards.
 
 ## Play / Download
 
-- [Play on WebMSX (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
+- [Play on WebMSX (MSX turboR)](https://webmsx.org/?MACHINE=MSXTRJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 

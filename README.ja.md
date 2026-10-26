@@ -21,7 +21,7 @@
 
 ## プレイ / ダウンロード
 
-- [WebMSX で遊ぶ (MSX2+)](https://webmsx.org/?MACHINE=MSX2PJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
+- [WebMSX で遊ぶ (MSXturboR)](https://webmsx.org/?MACHINE=MSXTRJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
 - [LUMINA.DSK](dist/LUMINA.DSK) — 起動可能な 720KB ディスクイメージ（自動起動）
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
