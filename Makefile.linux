@@ -1,14 +1,13 @@
 # Makefile.linux - Linux build for LUMINA SERPENT (MSX2/MSX2+ / z88dk)
 #
-# The shipped build is the SCREEN 8 edition:
+# The shipped build (SCREEN 8):
 #   zcc +msx -create-app -O3 -subtype=msxdos -DMSX -lm \
-#       -DNOSCROLL -DSCR8 -DSCR8LIN \
+#       -DNOSCROLL \
 #       src/main.c src/msxclib.c src/msxalib.c -bn LUMINA.COM
 #   python3 tools/make_dsk.py <try16 template DSK> LUMINA.COM \
 #       LUMINA.DSK data/tpl8.dat data/gpl8.dat
-# (the SCREEN 8 build streams its two Earth images from the
-# data/*.dat files on the disk; the legacy SCREEN 5 build is
-# still available as `make -f Makefile.linux scr5`.)
+# (the two Earth images are streamed from the data/*.dat files
+# on the disk.)
 #
 # Libraries: msxalib.{h,c} / msxclib.{h,c} by yamayamaru
 # (yamayamaru-storage-place, source-code_2023-09-30).
@@ -23,8 +22,8 @@ BUILD  := build-linux
 TARGET := $(BUILD)/LUMINA.COM
 DSK    := $(BUILD)/LUMINA.DSK
 SRCS   := src/main.c src/msxclib.c src/msxalib.c
-HDRS   := src/msxalib.h src/msxclib.h src/font.h src/title_img.h src/planet_img.h src/deepfield.h
-DEFS   := -DNOSCROLL -DSCR8 -DSCR8LIN
+HDRS   := src/msxalib.h src/msxclib.h src/font.h src/title_img.h src/deepfield.h
+DEFS   := -DNOSCROLL
 DATA8  := data/tpl8.dat data/gpl8.dat
 DSK_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))../try16/bin/TRY16.DSK
 DSK_TOOL := tools/make_dsk.py
@@ -42,22 +41,7 @@ dsk: $(DSK)
 $(DSK): $(TARGET) $(DSK_TEMPLATE) $(DSK_TOOL) $(DATA8)
 	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(TARGET) $(DSK) $(DATA8)
 
-# Legacy SCREEN 5 build (v1.8 feature set), kept for reference.
-SCR5_BUILD := build-scr5
-scr5:
-	mkdir -p $(SCR5_BUILD)
-	rm -f $(SCR5_BUILD)/LUMINA.img
-	cd $(SCR5_BUILD) && zcc +msx -create-app -O3 -subtype=msxdos -DMSX -DNOSCROLL -lm -I../src ../src/main.c ../src/msxclib.c ../src/msxalib.c -bn LUMINA.COM
-	rm -f $(SCR5_BUILD)/LUMINA.img
-	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(SCR5_BUILD)/LUMINA.COM $(SCR5_BUILD)/LUMINA.DSK
-
-bench: $(SRCS) $(HDRS)
-	mkdir -p $(BUILD)
-	cd $(BUILD) && zcc +msx -create-app -O3 -subtype=msxdos -DMSX -DBENCH -lm -I../src ../src/main.c ../src/msxclib.c ../src/msxalib.c -bn LUMINA_BENCH.COM
-	rm -f $(BUILD)/LUMINA_BENCH.img
-	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(BUILD)/LUMINA_BENCH.COM $(BUILD)/LUMINA_BENCH.DSK
-
 clean:
-	rm -rf $(BUILD) $(SCR5_BUILD)
+	rm -rf $(BUILD)
 
-.PHONY: all dsk clean bench scr5
+.PHONY: all dsk clean
