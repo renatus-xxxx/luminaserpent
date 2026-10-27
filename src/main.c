@@ -1107,7 +1107,8 @@ static void draw_str_centered(int y, const char *s, int fg, int bg, int scale)
 /* ============================================================
  * Sprites: patterns 0..15 are authored below, 16..24 (boss tiles),
  * 25..41 (laser slopes), 42..58 (PRISM slopes) and 59..60 (item
- * letters, two dynamic slots) are generated at init.
+ * letters, two dynamic slots) are generated at init; pattern 61
+ * (the spark's second frame) is authored with the others.
  * Per-frame the used planes are packed in priority order and both
  * the attribute table (128 bytes) and the colour table are flushed
  * with single ldirvm calls, because plane assignment is dynamic.
@@ -1132,9 +1133,10 @@ static void draw_str_centered(int y, const char *s, int fg, int bg, int scale)
 #define PAT_BEAM    25   /* ..41 slopes -8..+8 */
 #define PAT_PRISM   42   /* ..58 slopes -8..+8 */
 #define PAT_LETTER  59   /* ..60 dynamic */
+#define PAT_SPARK2  61   /* spark frame 2: expanding ring */
 
-static unsigned char pat_data[61][32];
-static unsigned char pat_col[61][16];
+static unsigned char pat_data[62][32];
+static unsigned char pat_col[62][16];
 
 /* ============================================================
  * Streamed planet images (SCREEN 8): PackBits byte rows read
@@ -1258,24 +1260,24 @@ static void pat_fill_col(int idx, unsigned char col)
 
 static const char *art_ship[16] = {
     "................",
-    ".....#..........",
-    "....###.........",
-    "....####........",
-    "..##########....",
-    ".############...",
-    ".###############",
-    "################",
-    ".###############",
-    ".############...",
-    "..##########....",
-    "....####........",
-    "....###.........",
-    ".....#..........",
+    "................",
+    ".###............",
+    ".######.........",
+    "..########......",
+    "..###..#####....",
+    ".#############..",
+    "..##############",
+    "..##############",
+    ".#############..",
+    "..###..#####....",
+    "..########......",
+    ".######.........",
+    ".###............",
     "................",
     "................"
 };
 static const unsigned char col_ship[16] = {
-    0,8,8,7,7,7,7,14,7,7,7,7,8,8,0,0
+    0,0,8,8,7,7,7,7,7,7,1,1,1,1,0,0
 };
 static const char *art_ship_a[16] = {
     "................",
@@ -1283,10 +1285,10 @@ static const char *art_ship_a[16] = {
     "................",
     "................",
     "................",
-    "................",
-    ".........###....",
-    ".........####...",
-    ".........###....",
+    "........##......",
+    ".......####.....",
+    "##..............",
+    "##..............",
     "................",
     "................",
     "................",
@@ -1296,28 +1298,28 @@ static const char *art_ship_a[16] = {
     "................"
 };
 static const unsigned char col_ship_a[16] = {
-    0,0,0,0,0,0,14,14,14,0,0,0,0,0,0,0
+    0,0,0,0,0,14,14,11,11,0,0,0,0,0,0,0
 };
 static const char *art_option[16] = {
     "................",
     "................",
     "................",
     "................",
-    ".....######.....",
+    ".....####.......",
     "....########....",
-    "...##########...",
-    "...##########...",
+    "...####..####...",
     "...##########...",
     "...##########...",
     "....########....",
-    ".....######.....",
+    ".....####.......",
+    "................",
     "................",
     "................",
     "................",
     "................"
 };
 static const unsigned char col_option[16] = {
-    0,0,0,0,7,7,8,14,8,7,7,7,0,0,0,0
+    0,0,0,0,8,7,7,14,7,1,1,0,0,0,0,0
 };
 static const char *art_fan[16] = {
     "................",
@@ -1344,64 +1346,64 @@ static const char *art_weaver[16] = {
     "................",
     "................",
     ".........##.....",
-    "........####....",
+    "........#####...",
     "..############..",
-    ".##############.",
+    ".###########..#.",
     "################",
     "################",
     "################",
-    ".##############.",
+    ".###########..#.",
     "..############..",
-    "........####....",
+    "........#####...",
     ".........##.....",
     "................",
     "................",
     "................"
 };
 static const unsigned char col_weaver[16] = {
-    0,0,9,9,9,9,9,14,9,9,9,9,9,0,0,0
+    0,0,9,9,9,9,9,14,9,6,6,6,6,0,0,0
 };
 static const char *art_orb[16] = {
     "................",
     ".....######.....",
-    "...##########...",
+    "....########....",
     "..############..",
     "..############..",
+    ".###..####..###.",
+    ".###..####..###.",
     ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
+    ".###..####..###.",
+    ".###..####..###.",
     ".##############.",
     ".##############.",
     "..############..",
     "..############..",
-    "...##########...",
-    ".....######.....",
+    "....########....",
     "................"
 };
 static const unsigned char col_orb[16] = {
-    0,13,13,13,13,3,3,14,3,3,13,13,13,13,13,0
+    0,14,13,13,13,3,3,14,3,3,13,13,13,3,3,0
 };
 static const char *art_carrier[16] = {
     "................",
-    "..############..",
-    ".##############.",
-    ".##############.",
+    "..##########....",
+    ".#############..",
+    ".###############",
     "################",
+    "####..####..####",
+    "####..####..####",
+    "####..#..#..####",
+    "####..#..#..####",
+    "####..####..####",
+    "####..####..####",
     "################",
-    "################",
-    "################",
-    "################",
-    "################",
-    "################",
-    "################",
-    ".##############.",
-    ".##############.",
-    "..############..",
+    ".###############",
+    ".#############..",
+    "..##########....",
     "................"
 };
 static const unsigned char col_carrier[16] = {
-    0,11,11,4,4,4,12,12,4,4,4,4,11,11,11,0
+    0,11,11,4,4,4,12,12,12,4,4,4,1,1,11,0
 };
 static const char *art_dart[16] = {
     "................",
@@ -1427,17 +1429,17 @@ static const unsigned char col_dart[16] = {
 static const char *art_crystal[16] = {
     ".......##.......",
     "......####......",
-    "......####......",
     ".....######.....",
-    ".....######.....",
-    "....########....",
     "....########....",
     "...##########...",
-    "....########....",
+    "....##########..",
+    ".....######.....",
+    "...##########...",
+    "..############..",
+    "..############..",
+    "...##########...",
     "....########....",
     ".....######.....",
-    ".....######.....",
-    "......####......",
     "......####......",
     ".......##.......",
     "................"
@@ -1485,8 +1487,12 @@ static const char *art_pbul[16] = {
     "................"
 };
 static const unsigned char col_pbul[16] = {
-    0,0,0,0,0,0,0,10,10,0,0,0,0,0,0,0
+    0,0,0,0,0,0,0,14,10,0,0,0,0,0,0,0
 };
+/* capsule frame colour per item type (the S_WHITE rows of
+   art_capsule are repainted with this via spr_add_t):
+   T=cyan, C=orange, D=green, P=pink, E=blue, H=white, STAR=yellow */
+static const unsigned char cap_tint[7] = { 7, 11, 9, 13, 4, 14, 10 };
 static const char *art_ebul[16] = {
     "................",
     "................",
@@ -1550,6 +1556,29 @@ static const char *art_spark[16] = {
 static const unsigned char col_spark[16] = {
     10,10,10,10,11,11,14,11,10,10,10,10,0,0,0,0
 };
+/* spark frame 2: the flash (PAT_SPARK) gives way to this
+   expanding octagonal ring for the second half of its life */
+static const char *art_spark2[16] = {
+    "................",
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    "..#..........#..",
+    ".#............#.",
+    ".#............#.",
+    ".#............#.",
+    ".#............#.",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "..#..........#..",
+    "...##......##...",
+    ".....######.....",
+    "................"
+};
+static const unsigned char col_spark2[16] = {
+    0,11,10,10,10,10,10,10,10,10,10,10,10,10,11,0
+};
 static const char *art_shard[16] = {
     "................",
     ".......##.......",
@@ -1593,25 +1622,24 @@ static const unsigned char col_halo[16] = {
     7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,0
 };
 
-/* boss body pixel function over 48x48 (ported idx_boss_t, simplified) */
+/* boss body pixel function over 48x48: concentric diamond
+   rings + spokes around a round core (design B "ring
+   fortress"). The centre is guarded so only the spokes
+   cross it, which lets the pink core read as a disc even
+   though sprite colours are assigned per tile row. */
 static int boss_pix(int x, int y)
 {
     int dx = x - 24, dy = y - 24;
     int ad = iabs(dx) + iabs(dy);
     int d2 = dx * dx + dy * dy;
     if (ad > 23) return 0;
-    if (d2 <= 25) return 1;              /* core */
-    if (ad >= 21) return 1;              /* rim */
+    if (d2 <= 36) return 1;              /* core disc (r=6) */
+    if (iabs(dx) <= 9 && iabs(dy) <= 7)  /* guard zone */
+        return (dx == 0 || dy == 0 || iabs(dx) == iabs(dy));
+    if (ad >= 22 || (ad >= 9 && ad <= 10) || (ad >= 15 && ad <= 16))
+        return 1;                        /* rings + rim */
     if (dx == 0 || dy == 0 || iabs(dx) == iabs(dy)) return 1;
-    /* SCREEN 8 only: denser facets (3-on/1-off instead of
-       2-on/2-off), approved when the boss read brown on
-       screen. The brown itself turned out to be the GRAPHIC
-       7 fixed sprite palette (see spr_add), not show-through,
-       but the denser facets still serve the design: at 75%
-       coverage the boss body reads as a solid mass over the
-       photographic Earth. SCREEN 5 keeps the original
-       facets. */
-    return ((x + y) & 3) != 0;           /* facets (dense) */
+    return 0;                            /* spokes only */
 }
 static void gen_boss_patterns(void)
 {
@@ -1627,10 +1655,14 @@ static void gen_boss_patterns(void)
             }
             pat_data[PAT_BOSS + t][r] = bl;
             pat_data[PAT_BOSS + t][16 + r] = br;
-            if (gy >= 19 && gy <= 29 && tx == 16)
-                pat_col[PAT_BOSS + t][r] = S_PINK;
+            if (t == 4 && gy >= 18 && gy <= 29)
+                pat_col[PAT_BOSS + t][r] = S_PINK;   /* core */
+            else if ((gy % 6) == 0)
+                pat_col[PAT_BOSS + t][r] = S_ICE;    /* seam rows */
+            else if (t == 0 || t == 2 || t == 6 || t == 8)
+                pat_col[PAT_BOSS + t][r] = 6;        /* corner facets */
             else
-                pat_col[PAT_BOSS + t][r] = ((t + r) & 1) ? S_CYAN : S_ICE;
+                pat_col[PAT_BOSS + t][r] = S_CYAN;
         }
     }
 }
@@ -1696,7 +1728,7 @@ static void gen_letter_pattern(int slot, int type)
             pat_data[slot][r] = bl;
             pat_data[slot][16 + r] = br;
         }
-        pat_fill_col(slot, S_YELLOW);
+        pat_fill_col(slot, S_WHITE);
     }
     sprite(slot * 4, (char *)pat_data[slot]);
 }
@@ -1718,6 +1750,7 @@ static void setup_sprites(void)
     pat_from_art(PAT_EBUL, art_ebul, col_ebul);
     pat_from_art(PAT_MISSILE, art_missile, col_missile);
     pat_from_art(PAT_SPARK, art_spark, col_spark);
+    pat_from_art(PAT_SPARK2, art_spark2, col_spark2);
     pat_from_art(PAT_SHARD, art_shard, col_shard);
     pat_from_art(PAT_HALO, art_halo, col_halo);
     gen_boss_patterns();
@@ -1726,7 +1759,7 @@ static void setup_sprites(void)
     /* upload the pattern table through the raw writer in
        logical (PATBAS-relative) addresses instead of msxclib's
        linear sprite() */
-    for (i = 0; i < 61; i++) {
+    for (i = 0; i < 62; i++) {
         vw_addr = (unsigned long)(*(unsigned int *)0xf926)
                 + (unsigned long)(i * 32);
         vw_src = (unsigned char *)pat_data[i];
@@ -1749,7 +1782,7 @@ static unsigned char spr_col[MAX_SPR * 16];
 static int spr_n;
 static int spr_fixed;   /* leading planes that never rotate */
 static void spr_reset(void) { spr_n = 0; spr_fixed = 0; }
-static void spr_add(int x, int ytop, int pat)
+static void spr_add_t(int x, int ytop, int pat, int tint)
 {
     int i;
     if (spr_n >= MAX_SPR) return;
@@ -1781,9 +1814,20 @@ static void spr_add(int x, int ytop, int pat)
             0, 1, 1, 3, 9, 13, 5, 13, 15, 12, 14, 8, 10, 11, 15, 15
         };
         int r;
-        for (r = 0; r < 16; r++)
-            spr_col[i * 16 + r] = g7map[pat_col[pat][r] & 0x0f];
+        for (r = 0; r < 16; r++) {
+            unsigned char pc = pat_col[pat][r] & 0x0f;
+            /* per-call colour override (item capsule frames):
+               rows painted S_WHITE in the pattern take the
+               tint colour instead, so the item type can be
+               told apart by its frame */
+            if (tint >= 0 && pc == S_WHITE) pc = (unsigned char)tint;
+            spr_col[i * 16 + r] = g7map[pc];
+        }
     }
+}
+static void spr_add(int x, int ytop, int pat)
+{
+    spr_add_t(x, ytop, pat, -1);
 }
 /* VRAM block write for the sprite tables. Interrupts are off
    ONLY around the address setup: once the address is latched,
@@ -2924,16 +2968,18 @@ static void render(void)
     for (i = 0; i < 12; i++)
         if (enemies[i].active)
             spr_add(enemies[i].x - 8, enemies[i].y - 8, enemy_pat[enemies[i].type]);
-    /* items */
+    /* items (capsule frame colour identifies the type) */
     for (i = 0; i < 4; i++)
         if (items[i].active) {
             spr_add(items[i].x - 8, items[i].y - 8, PAT_LETTER + (i & 1));
-            spr_add(items[i].x - 8, items[i].y - 8, PAT_CAPSULE);
+            spr_add_t(items[i].x - 8, items[i].y - 8, PAT_CAPSULE,
+                      cap_tint[items[i].type]);
         }
-    /* sparks */
+    /* sparks: flash first, then the expanding ring */
     for (i = 0; i < 6; i++)
         if (sparks[i].active)
-            spr_add(sparks[i].x - 8, sparks[i].y - 8, PAT_SPARK);
+            spr_add(sparks[i].x - 8, sparks[i].y - 8,
+                    sparks[i].t < 5 ? PAT_SPARK : PAT_SPARK2);
     /* enemy bullets */
     for (i = 0; i < 24; i++)
         if (ebul[i].active)
