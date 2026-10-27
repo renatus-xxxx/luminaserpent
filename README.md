@@ -4,8 +4,9 @@
 
 **LUMINA SERPENT** is an original side-scrolling shooter for
 **MSX2 / MSX2+ / MSX turboR**, written in C with z88dk and shipped
-as a bootable MSX-DOS disk image. The same game design,
-reimplemented for the V9938/V9958.
+as a bootable MSX-DOS disk image. It is the MSX version of the
+identically titled X68000 work, reimplementing the same game
+design.
 
 ![LUMINA SERPENT preview — title, the Earth stage and the boss fight](preview.gif)
 
