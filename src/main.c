@@ -1321,26 +1321,29 @@ static const char *art_option[16] = {
 static const unsigned char col_option[16] = {
     0,0,0,0,8,7,7,14,7,1,1,0,0,0,0,0
 };
+/* round 2: faceted octagonal disc, diagonal facet seams in the
+   mid annulus (phase flips at the equator), orange hub with an
+   axle hole, white glint row, burgundy lower facet */
 static const char *art_fan[16] = {
     "................",
-    ".....#....#.....",
-    "......#..#......",
-    "...#..####..#...",
-    "....#.####.#....",
-    ".....######.....",
-    "..############..",
-    "..############..",
-    "..############..",
-    "..############..",
-    ".....######.....",
-    "....#.####.#....",
-    "...#..####..#...",
-    "......#..#......",
-    ".....#....#.....",
+    "....########....",
+    "...###.######...",
+    "..#####.######..",
+    ".#######.######.",
+    ".##############.",
+    ".#.############.",
+    ".##.###..##.###.",
+    ".######..####.#.",
+    ".###.#######.##.",
+    ".##.#######.###.",
+    ".#.#######.####.",
+    "..#######.####..",
+    "...#####.####...",
+    "....########....",
     "................"
 };
 static const unsigned char col_fan[16] = {
-    0,11,11,11,10,10,10,10,10,10,10,11,11,11,11,0
+    0,11,10,10,14,10,10,11,11,10,10,10,10,3,3,0
 };
 static const char *art_weaver[16] = {
     "................",
@@ -1405,26 +1408,29 @@ static const char *art_carrier[16] = {
 static const unsigned char col_carrier[16] = {
     0,11,11,4,4,4,12,12,12,4,4,4,1,1,11,0
 };
+/* round 2: yellow/orange facet split, white spine row, small
+   stabiliser fins above/below the tail edge, one panel notch
+   per half */
 static const char *art_dart[16] = {
     "................",
     "................",
-    "................",
+    ".............###",
     "..........######",
     ".......#########",
-    "....############",
+    "....########.###",
     ".###############",
     "################",
-    "################",
     ".###############",
     "....############",
+    ".......####.####",
     ".......#########",
     "..........######",
-    "................",
+    ".............###",
     "................",
     "................"
 };
 static const unsigned char col_dart[16] = {
-    0,0,0,10,10,10,10,14,10,10,10,10,10,0,0,0
+    0,0,10,10,10,10,10,14,11,11,11,11,11,11,0,0
 };
 static const char *art_crystal[16] = {
     ".......##.......",
@@ -1511,29 +1517,34 @@ static const char *art_ebul[16] = {
     "................",
     "................"
 };
+/* round 2: art unchanged; colours only -- magenta upper rows,
+   white core row, burgundy lower facet */
 static const unsigned char col_ebul[16] = {
-    0,0,0,0,0,13,13,14,13,13,0,0,0,0,0,0
+    0,0,0,0,0,13,13,14,3,3,0,0,0,0,0,0
 };
+/* round 2: slim 4-row body, stepped nose whose tip extends
+   only on the white core row, tail fins as separate rear
+   blocks, burgundy lower facet */
 static const char *art_missile[16] = {
     "................",
     "................",
     "................",
     "................",
-    "....##..........",
-    "....###.........",
-    "..###########...",
-    "..#############.",
-    "..#############.",
-    "..###########...",
-    "....###.........",
-    "....##..........",
+    "..##............",
+    "..###...........",
+    "..##########....",
+    "..##############",
+    "..############..",
+    "..##########....",
+    "..###...........",
+    "..##............",
     "................",
     "................",
     "................",
     "................"
 };
 static const unsigned char col_missile[16] = {
-    0,0,0,0,11,11,11,14,11,11,11,11,0,0,0,0
+    0,0,0,0,11,11,11,14,11,3,3,3,0,0,0,0
 };
 static const char *art_spark[16] = {
     ".......##.......",
@@ -1579,6 +1590,9 @@ static const char *art_spark2[16] = {
 static const unsigned char col_spark2[16] = {
     0,11,10,10,10,10,10,10,10,10,10,10,10,10,11,0
 };
+/* round 2: boss-B dialect -- angular diamond plate with a
+   bite notch on the core rows, white seam row, teal tip
+   facets, pink reduced to a small core remnant */
 static const char *art_shard[16] = {
     "................",
     ".......##.......",
@@ -1587,18 +1601,18 @@ static const char *art_shard[16] = {
     ".....######.....",
     ".....######.....",
     "....########....",
-    "....########....",
+    "....######......",
+    "....######......",
     "....########....",
     ".....######.....",
     ".....######.....",
     "......####......",
     "......####......",
     ".......##.......",
-    "................",
     "................"
 };
 static const unsigned char col_shard[16] = {
-    0,8,7,7,13,13,14,7,13,13,8,8,7,7,0,0
+    0,6,7,7,7,8,7,13,13,7,7,6,6,6,6,0
 };
 static const char *art_halo[16] = {
     ".....######.....",
@@ -1618,8 +1632,11 @@ static const char *art_halo[16] = {
     ".....######.....",
     "................"
 };
+/* round 2: art unchanged; colours only -- the 1px cyan ring
+   becomes a shaded torus (white top arc, cyan sides, white
+   equator rows, deep-teal bottom facet) */
 static const unsigned char col_halo[16] = {
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,0
+    8,8,7,7,7,7,14,14,7,7,7,7,6,6,6,0
 };
 
 /* boss body pixel function over 48x48: concentric diamond
@@ -1689,8 +1706,12 @@ static void gen_beam_patterns(void)
                 pat_data[idx][16 + r] = br;
                 pat_col[idx][r] = prism ? S_PINK : S_CYAN;
             }
-            /* bright core rows near the axis ends */
-            pat_col[idx][8 - s / 2] = S_WHITE;
+            /* bright core row. Beam (round 2): the row the
+               segment midpoint sits on (8 + s/2), so every slope
+               keeps a white core -- the classic 8 - s/2 row
+               never intersects the line for |s| >= 5. PRISM
+               keeps the classic rule unchanged. */
+            pat_col[idx][prism ? 8 - s / 2 : 8 + s / 2] = S_WHITE;
         }
     }
 }
