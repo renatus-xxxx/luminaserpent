@@ -5,7 +5,9 @@ diag/
 repro/
 variants/
 design/
-images/
+images/*
+!images/teaser.png
 DESIGN.md
 tools/gen_title_image.py
+__pycache__/
 *.avi

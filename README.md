@@ -26,8 +26,8 @@ shielded by four orbiting shards.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build (v1.8): `LUMINA.COM` 49,922 bytes,
-MD5 `2b697ee2656054d2d0ebbf5ef1772a88`.
+Current build (SCREEN 8 edition): `LUMINA.COM` 50,282 bytes,
+MD5 `1e28b405fded17ce102b5ae0c2f01cfb`.
 
 ## Controls
 
@@ -44,24 +44,45 @@ MD5 `2b697ee2656054d2d0ebbf5ef1772a88`.
   MSX2 / MSX2+ / turboR at startup and switches to the R800
   only on turboR. No BASIC or disk setup needed: the disk
   boots straight into the game.
+- **SCREEN 8 (GRAPHIC 7) graphics in 256 colours (GRB332)** —
+  both Earths (title and in-game) are 256-colour renders with
+  dithered shading, streamed from data files on the disk
+  (`TPL8.DAT` / `GPL8.DAT`) because the .COM sits at the
+  MSX-DOS memory ceiling. The backdrop is the "Deep Field":
+  a dense two-layer procedural star field over a smooth
+  vertical gradient.
+- **Sprite colours on GRAPHIC 7** — in this mode the VDP reads
+  sprite colour codes through its fixed built-in table rather
+  than the programmable palette, so sprite palette indices are
+  mapped to the nearest fixed-table colours to preserve the
+  colour scheme of the earlier SCREEN 5 build.
+- **Fast WARNING restore** — when the boss WARNING panel is
+  erased, the Earth behind it is restored from a backup copy
+  held in VRAM (about 0.06 s) instead of being re-read from
+  disk (about 4.3 s).
 - **Split screen** — a line-interrupt keeps the HUD (score and
   RESONANCE gauge) and the equipment band fixed while the
   playfield in between does its work.
 - **PSG music and effects**, with separate scenes for the
   title, the stage and the boss.
-- Demo benchmark: about 48 fps on MSX turboR.
 
 ## Building
 
 ```
-make -f Makefile.linux
+make -f Makefile.linux        # SCREEN 8 edition (default)
+make -f Makefile.linux dsk    # + the bootable disk image
 ```
 
-Requires z88dk (classic library, `+msx` target). The build
-produces `LUMINA.COM`; `tools/make_dsk.py` packs it into the
-bootable disk image using a template MSX-DOS disk.
+Requires z88dk (classic library, `+msx` target). The default
+build defines `-DNOSCROLL -DSCR8 -DSCR8LIN` and produces
+`LUMINA.COM`; `tools/make_dsk.py` packs it into the bootable
+disk image using a template MSX-DOS disk, adding the SCREEN 8
+Earth data files (`data/tpl8.dat`, `data/gpl8.dat`). The
+legacy SCREEN 5 build (v1.8 feature set) is still available as
+`make -f Makefile.linux scr5`.
 
 ## Notes
 
-- Requires MSX2 or higher (SCREEN 5). MSX1 is not supported.
+- Requires MSX2 or higher (SCREEN 8, i.e. V9938 or later).
+  MSX1 is not supported.
 - Sound is PSG only.

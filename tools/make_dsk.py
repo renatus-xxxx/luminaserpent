@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Build LUMINA.DSK from the try16 template DSK.
 
-Usage: make_dsk.py TEMPLATE.DSK LUMINA.COM OUTPUT.DSK
+Usage: make_dsk.py TEMPLATE.DSK LUMINA.COM OUTPUT.DSK [EXTRA ...]
+
+Any EXTRA files are added as new root entries under their
+basename (8.3) - used by the SCREEN 8 build for the streamed
+Earth images (data/tpl8.dat, data/gpl8.dat).
 
 The template (try16's shipped TRY16.DSK) carries MSX-DOS
 (COMMAND.COM / DOS.SYS) and an AUTOEXEC.BAT. This tool:
@@ -112,6 +116,42 @@ def main() -> int:
     img[start:start + clus_size] = content.ljust(clus_size, b"\x00")
     struct.pack_into("<I", img, bat + 28, len(content))
     print(f"AUTOEXEC.BAT: cluster {bat_first}, now {content!r}")
+
+    # --- add any extra files as new root entries ---
+    import os
+    for extra_path in sys.argv[4:]:
+        data_x = open(extra_path, "rb").read()
+        name83 = os.path.basename(extra_path).upper()
+        base, ext = name83.split(".")
+        raw = base.ljust(8).encode() + ext.ljust(3).encode()
+        slot = None
+        for i in range(root_entries):
+            off = root_off + i * 32
+            if img[off] in (0x00, 0xE5):
+                slot = off
+                break
+        if slot is None:
+            print(f"no free root entry for {name83}", file=sys.stderr)
+            return 1
+        need = max(1, (len(data_x) + clus_size - 1) // clus_size)
+        free = [c for c in range(2, 2 + (len(img) - data_off) // clus_size)
+                if fat_get(c) == 0]
+        if len(free) < need:
+            print(f"not enough free clusters for {name83}",
+                  file=sys.stderr)
+            return 1
+        alloc = free[:need]
+        for i, c in enumerate(alloc):
+            fat_set(c, alloc[i + 1] if i + 1 < need else 0xFFF)
+            start = data_off + (c - 2) * clus_size
+            chunk = data_x[i * clus_size:(i + 1) * clus_size]
+            img[start:start + clus_size] = chunk.ljust(clus_size, b"\x00")
+        img[slot:slot + 32] = b"\x00" * 32
+        img[slot:slot + 11] = raw
+        img[slot + 11] = 0x20
+        struct.pack_into("<H", img, slot + 26, alloc[0])
+        struct.pack_into("<I", img, slot + 28, len(data_x))
+        print(f"added {name83}: size {len(data_x)}, clusters {alloc}")
 
     for fo in fat_offsets:
         img[fo:fo + fat_size] = fat

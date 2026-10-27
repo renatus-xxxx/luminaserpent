@@ -297,6 +297,122 @@ def write_planets():
         f.write("#endif\n")
 
 
+# ---------------- SCREEN 8 (GRB332) planet data ----------------
+# The SCREEN 8 build streams the two Earths from disk files: the
+# .COM is at the DOS memory ceiling, so the images ship as
+# data/tpl8.dat / data/gpl8.dat (PackBits byte rows, no header;
+# geometry comes from planet_img.h's TPL_/GPL_ macros). Colours
+# are GRB332, quantized "fsdisc" style (user decision, 2026-10-27):
+# Floyd-Steinberg error diffusion inside the planet disc + glow
+# only, flat quantization outside it - full-frame dithering made
+# the backdrop noisy and broke the seam against the procedural
+# background, while flat-only quantization banded the smoothly
+# shaded Earth. The rects' corners quantize to exactly the GRB332
+# bytes the runtime slice renderer paints for the Deep Field
+# background (spec: tools/gen_deepfield.py - the flat path of the
+# quantizer returns the spec byte unchanged), so the blits sit
+# seamlessly on the procedural background.
+
+def quantize8(rgb):
+    q = np.clip(rgb, 0, 255)
+    r7 = np.round(q[..., 0] / 255.0 * 7).astype(np.uint8)
+    g7 = np.round(q[..., 1] / 255.0 * 7).astype(np.uint8)
+    b3 = np.round(q[..., 2] / 255.0 * 3).astype(np.uint8)
+    return (g7 << 5) | (r7 << 2) | b3
+
+
+def quantize8_fsdisc(rgb, cover):
+    """GRB332 quantization with Floyd-Steinberg error diffusion
+    inside the cover region (planet disc + glow) only. Pixels
+    outside cover keep the flat quantize8() byte and propagate no
+    error, so the backdrop part stays byte-identical to the flat
+    data and the blit seam is preserved."""
+    flat = quantize8(rgb)
+    img = np.clip(rgb.astype(np.float32), 0, 255)
+    h, w, _ = img.shape
+    out = np.zeros((h, w), np.uint8)
+
+    def lvl(v, n):
+        return np.clip(np.round(v / 255.0 * (n - 1)), 0, n - 1)
+
+    for y in range(h):
+        for x in range(w):
+            if not cover[y, x]:
+                out[y, x] = flat[y, x]
+                continue
+            r, g, b = img[y, x]
+            r7, g7, b3 = lvl(r, 8), lvl(g, 8), lvl(b, 4)
+            out[y, x] = (int(g7) << 5) | (int(r7) << 2) | int(b3)
+            pr = np.array([r7 * 255 / 7, g7 * 255 / 7, b3 * 255 / 3])
+            err = img[y, x] - pr
+            if x + 1 < w:
+                img[y, x + 1] += err * 7 / 16
+            if y + 1 < h:
+                if x > 0:
+                    img[y + 1, x - 1] += err * 3 / 16
+                img[y + 1, x] += err * 5 / 16
+                if x + 1 < w:
+                    img[y + 1, x + 1] += err * 1 / 16
+    return out
+
+
+def grb8_expand(b):
+    r = (b >> 2) & 7
+    g = (b >> 5) & 7
+    bl = b & 3
+    return np.stack([r * 255.0 / 7, g * 255.0 / 7, bl * 255.0 / 3],
+                    axis=-1)
+
+
+def planet_comp_rgb(x0, y0, w, h, ccx, ccy, r, world_x0, seed):
+    base = backdrop_rgb(w, h, x0, y0, world_x0)
+    rgb, cover = earth_rgb(w, h, ccx, ccy, r, seed)
+    return np.where(cover[..., None], rgb, base)
+
+
+def backdrop_df_rgb(w, h, x0, y0):
+    """The Deep Field background (candidate A, SCR8) as RGB float,
+    for the SCREEN 8 Earth rects: the GRB332 byte the SCR8
+    draw_slice() paints at screen (x0+xx, y0+yy), expanded back to
+    RGB so the fsdisc quantizer's flat path returns exactly that
+    byte. The spec lives in tools/gen_deepfield.py (single
+    source); it has no stars - the blit covers the slice stars
+    under the rect anyway."""
+    import gen_deepfield as DF
+    img = np.zeros((h, w, 3), np.float32)
+    for yy in range(h):
+        for xx in range(w):
+            b = DF.bg_byte(x0 + xx, y0 + yy)
+            img[yy, xx] = (((b >> 2) & 7) * 255.0 / 7,
+                           ((b >> 5) & 7) * 255.0 / 7,
+                           (b & 3) * 255.0 / 3)
+    return img
+
+
+def write_planets8():
+    import os
+    os.makedirs("data", exist_ok=True)
+    specs = (("TPL", 32, 78, 192, 106, 96, 90, 85, 600, 17),
+             ("GPL", 142, 100, 114, 84, 66, 62, 56, 0, 23))
+    for name, x0, y0, w, h, ccx, ccy, r, wx0, seed in specs:
+        base = backdrop_df_rgb(w, h, x0, y0)
+        rgb, cover = earth_rgb(w, h, ccx, ccy, r, seed)
+        comp = np.where(cover[..., None], rgb, base)
+        b8 = quantize8_fsdisc(comp, cover)
+        out = bytearray()
+        for yy in range(h):
+            out += bytes(packbits_row([int(v) for v in b8[yy]]))
+        path = f"data/{name.lower()}8.dat"
+        with open(path, "wb") as f:
+            f.write(out)
+        print(f"{name}8 {w}x{h} packed={len(out)} "
+              f"colours={len(np.unique(b8))} -> {path}")
+        Image.fromarray(grb8_expand(b8).astype(np.uint8)).resize(
+            (w * 2, h * 2), Image.NEAREST).save(
+            f"design/planet_{name.lower()}8_preview.png")
+
+
 if __name__ == "__main__":
     write_logo()
     write_planets()
+    write_planets8()
