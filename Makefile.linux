@@ -5,9 +5,9 @@
 #       -DNOSCROLL \
 #       src/main.c src/msxclib.c src/msxalib.c -bn LUMINA.COM
 #   python3 tools/make_dsk.py <try16 template DSK> LUMINA.COM \
-#       LUMINA.DSK data/tpl8.dat data/gpl8.dat
-# (the two Earth images are streamed from the data/*.dat files
-# on the disk.)
+#       LUMINA.DSK data/tpl8.dat data/gpl8.dat data/logo.dat
+# (the two Earth images and the title logo mask are streamed
+# from the data/*.dat files on the disk.)
 #
 # Libraries: msxalib.{h,c} / msxclib.{h,c} by yamayamaru
 # (yamayamaru-storage-place, source-code_2023-09-30).
@@ -24,7 +24,7 @@ DSK    := $(BUILD)/LUMINA.DSK
 SRCS   := src/main.c src/msxclib.c src/msxalib.c
 HDRS   := src/msxalib.h src/msxclib.h src/font.h src/title_img.h src/deepfield.h
 DEFS   := -DNOSCROLL
-DATA8  := data/tpl8.dat data/gpl8.dat
+DATA8  := data/tpl8.dat data/gpl8.dat data/logo.dat
 DSK_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))../try16/bin/TRY16.DSK
 DSK_TOOL := tools/make_dsk.py
 

@@ -26,8 +26,8 @@ shielded by four orbiting shards.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build :`LUMINA.COM` 50,446 bytes,
-MD5 `6511acc5fd0159e3b8d85981b57cf941`.
+Current build :`LUMINA.COM` 48,966 bytes,
+MD5 `7ab2086ae3adb2453df29bd48a6957af`.
 
 ## Controls
 
