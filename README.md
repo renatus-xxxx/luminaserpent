@@ -26,8 +26,8 @@ shielded by four orbiting shards.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build :`LUMINA.COM` 48,966 bytes,
-MD5 `7ab2086ae3adb2453df29bd48a6957af`.
+Current build :`LUMINA.COM` 50,561 bytes,
+MD5 `1d6f3e242c5018e3dce23f5b56e52b36`.
 
 ## Controls
 
@@ -46,13 +46,18 @@ make -f Makefile.linux dsk    # + the bootable disk image
 ```
 
 Requires z88dk (classic library, `+msx` target). The default
-build defines `-DNOSCROLL` and produces `LUMINA.COM`;
-`tools/make_dsk.py` packs it into the bootable disk image
-using a template MSX-DOS disk, adding the Earth data files
-(`data/tpl8.dat`, `data/gpl8.dat`).
+build produces `LUMINA.COM`; `tools/make_dsk.py` packs it
+into the bootable disk image using a template MSX-DOS disk,
+adding the data files (`data/tpl8.dat`, `data/gpl8.dat`,
+`data/gplf8.dat`, `data/logo.dat`).
 
 ## Notes
 
 - Requires MSX2 or higher (SCREEN 8, i.e. V9938 or later).
   MSX1 is not supported.
+- On V9958 (MSX2+ / turboR) the background scrolls in
+  hardware (two-page ring, R#26/R#27); the Earth baked into
+  the ring is the full disc (`data/gplf8.dat`). On V9938
+  (MSX2) the background stays frozen - with the corner-crop
+  Earth (`data/gpl8.dat`) - and gameplay is identical.
 - Sound is PSG only.

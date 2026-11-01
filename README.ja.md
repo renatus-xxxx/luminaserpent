@@ -25,8 +25,8 @@
 - [LUMINA.DSK](dist/LUMINA.DSK) — 起動可能な 720KB ディスクイメージ（自動起動）
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
-現在のビルド :`LUMINA.COM` 48,966 bytes、
-MD5 `7ab2086ae3adb2453df29bd48a6957af`。
+現在のビルド :`LUMINA.COM` 50,561 bytes、
+MD5 `1d6f3e242c5018e3dce23f5b56e52b36`。
 
 ## 操作
 
@@ -45,13 +45,18 @@ make -f Makefile.linux dsk    # 起動可能なディスクイメージまで
 ```
 
 z88dk（クラシックライブラリ、`+msx` ターゲット）が必要です。
-既定のビルドは `-DNOSCROLL` を定義して `LUMINA.COM` を生成
-し、`tools/make_dsk.py` がテンプレートの MSX-DOS ディスクを
-使って起動可能なディスクイメージにまとめます（地球データ
-`data/tpl8.dat` / `data/gpl8.dat` も収録）。
+既定のビルドは `LUMINA.COM` を生成し、`tools/make_dsk.py` が
+テンプレートの MSX-DOS ディスクを使って起動可能なディスク
+イメージにまとめます（データファイル `data/tpl8.dat` /
+`data/gpl8.dat` / `data/gplf8.dat` / `data/logo.dat` も収録）。
 
 ## 注意
 
 - MSX2 以降（SCREEN 8、すなわち V9938 以降）が必要です。
   MSX1 には対応していません。
+- V9958（MSX2+ / turboR）では背景がハードウェアスクロール
+  します（2ページリング、R#26/R#27）。リングに焼かれる
+  地球は全円版（`data/gplf8.dat`）です。V9938（MSX2）では
+  背景は静止したまま（地球は角構図の切り取り版
+  `data/gpl8.dat`）になります（ゲーム内容は同一です）。
 - サウンドは PSG のみです。

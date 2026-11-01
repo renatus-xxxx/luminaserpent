@@ -18,15 +18,15 @@
  *     and SP2 (two-page, 512-dot wide ring). Coarse steps are also
  *     done by R#26; new 8-dot columns are streamed into the hidden
  *     half of the ring. No bitmap copy ever happens.
- *   - V9938 (MSX2): SET ADJUST (R#18) provides the fine scroll
- *     -7..0 dots (the border flips, exactly as in Manbow on MSX2),
- *     and every 8 dots the bitmap play area is shifted left 8 dots
- *     with one HMMM command and a new column is drawn at the right
- *     edge - Manbow's software coarse step, bitmap version.
+ *   - V9938 (MSX2): the background is deliberately kept frozen.
+ *     The SET ADJUST + HMMM software-scroll path that used to run
+ *     here cost a full-width bitmap copy every 8 dots; the shipped
+ *     runtime instead advances only the logic distance on V9938,
+ *     exactly as the former NOSCROLL build did on both VDPS.
  * A line-interrupt screen split (H.KEYI hook, R#19) keeps the top
  * HUD (lines 0..15) and the bottom equipment band (184..211)
- * un-scrolled on both paths: the split applies scroll=0 above line
- * 16 and below line 184, the game scroll in between.
+ * un-scrolled: the split applies scroll=0 above line 16 and below
+ * line 184, the game scroll in between on V9958.
  *
  * Audio: PSG direct OUT (ports 0xA0/0xA1, register shadow), the
  * STAR BREAKER (MSX) sequencer: A = arpeggio, B = bass, C = SE,
@@ -53,6 +53,16 @@
 #define GPL_Y 100
 #define GPL_W 114
 #define GPL_H 84
+/* Full-disc Earth for the V9958 scroll ring (data/gplf8.dat):
+   the GPL rect crops the disc (right 8 px / bottom 34 px) for
+   its frozen corner composition - carried across the screen by
+   the ring, those crops read as straight cuts through the disc.
+   GPLF holds the whole disc + glow; its rect sits at world
+   columns GPLF_WX.., rows GPLF_Y.., disc centre (208, 104). */
+#define GPLF_WX 144
+#define GPLF_Y  40
+#define GPLF_W  128
+#define GPLF_H  128
 #include "deepfield.h"   /* Deep Field background table (SCR8) */
 
 #define JIFFY   (*(volatile unsigned char *)0xfc9e)
@@ -589,6 +599,7 @@ extern unsigned long vw_addr;
 extern unsigned int vw_len;
 extern unsigned char *vw_src;
 static void vram_write(void);
+static unsigned long text_page_base;   /* draw_char5 page offset (0 = page 0) */
 
 static const unsigned char df_star0[4] = { 0x69, 0x6a, 0x46, 0x6d };
 static const unsigned char df_star1[4] = { 0xb6, 0xaf, 0x8b, 0x95 };
@@ -597,16 +608,27 @@ static const unsigned char df_star2[4] = { 0xff, 0xcf, 0xaf, 0xbd };
 
 static unsigned char df_ready;
 static unsigned char df_row[8];
+/* The gradient strip lives OFF-screen: page 1 rows 212..253
+   (never displayed - the screen is 212 lines), as four 8x42
+   sub-strips side by side at x = 0, 8, 16, 24. It used to sit
+   at page 1 x=0 in the play rows, which was safe while page 1
+   was never displayed; in ring mode that slice is on screen,
+   so the storage had to move out of the ring entirely. */
+#define DF_STRIP_Y 212
 static void df_render(void)
 {
-    int x, y;
+    int k, r, x;
     wait_vdp_cmd();
-    for (y = PLAY_Y0; y <= PLAY_Y1; y++) {
-        const unsigned char *t = df_bg[y - PLAY_Y0];
-        for (x = 0; x < 8; x++) df_row[x] = t[x & 3];
-        vw_addr = 0x10000UL + (unsigned int)y * 256;
-        vw_src = df_row; vw_len = 8;
-        vram_write();
+    for (k = 0; k < 4; k++) {
+        for (r = 0; r < 42; r++) {
+            int y = PLAY_Y0 + k * 42 + r;
+            const unsigned char *t = df_bg[y - PLAY_Y0];
+            for (x = 0; x < 8; x++) df_row[x] = t[x & 3];
+            vw_addr = 0x10000UL + (unsigned int)(DF_STRIP_Y + r) * 256
+                    + (unsigned int)(k * 8);
+            vw_src = df_row; vw_len = 8;
+            vram_write();
+        }
     }
 }
 
@@ -682,24 +704,26 @@ static void draw_slice(int lx, int page, long wx)
 {
     ACPAGE = (unsigned char)page;
     if (!df_ready) { df_render(); df_ready = 1; }
-#ifdef NOSCROLL
-    /* NOSCROLL SCR8 never displays page 1 and never reads its
-       slices back (the only page-1 consumers are the DF strip
-       and the Earth backup, both written directly), so skip
-       page-1 slices entirely - this halves the stage-build
-       slice cost, which the denser Deep Field stars raised. */
-    if (page == 1) return;
-#endif
+    /* On V9938 the display never leaves page 0, and nothing reads
+       page-1 slices back (the only page-1 consumers are the DF
+       strip and the Earth backup, both written directly), so skip
+       page-1 slices entirely - this halves the stage-build slice
+       cost, which the denser Deep Field stars raised. On V9958
+       page 1 is the second half of the scroll ring and every
+       slice is required. */
+    if (!is_v9958 && page == 1) return;
     /* background: HMMM the pre-rendered strip (its Bayer phase
        is aligned to x&3 and every call site is 8-dot aligned,
-       so the copy lands phase-exact on any slice) */
-    vdp_hmmm(0, PLAY_Y0 + 256, lx, PLAY_Y0 + page * 256, 8, PLAY_H);
-    /* The page-1 lx==0 slice IS the strip: plotting its stars
-       would corrupt the strip for every later copy (measured:
-       the WARNING restore repainted the strip's star pattern
-       into all 22 restored slices). That slice is never
-       displayed in SCR8 (page 1 is not shown), so skip them. */
-    if (page != 1 || lx != 0) df_stars(lx, page, wx);
+       so the copy lands phase-exact on any slice). The strip
+       is four 8x42 sub-strips in off-screen VRAM (see
+       df_render), hence four copies. */
+    {
+        int k;
+        for (k = 0; k < 4; k++)
+            vdp_hmmm(k * 8, 256 + DF_STRIP_Y, lx,
+                     PLAY_Y0 + page * 256 + k * 42, 8, 42);
+    }
+    df_stars(lx, page, wx);
 }
 
 /* ============================================================
@@ -716,7 +740,8 @@ static void scroll_setup_stage(void)
     scroll_x = 0;
     if (is_v9958) {
         disp_page = 0;   /* V9958 ring: pages 0+1, left = 0 */
-        /* SCR8: no ring - the BIOS display base stays, scroll 0 */
+        /* Fill the whole 512-dot ring first; the SP2 pair
+           (R#25/R#2) is engaged at the end of the fill below. */
         vdp_reg(26, 0);
         vdp_reg(27, 0);
         cur_r26 = cur_r27 = 0;
@@ -730,10 +755,19 @@ static void scroll_setup_stage(void)
         boxfil(0, 0, 255, 211, C_BLACK, 0);
         ACPAGE = 1;
         boxfil(0, 0, 255, 211, C_BLACK, 0);
-        df_ready = 0;   /* the clear wiped the Deep Field strip */
+        df_ready = 0;   /* re-render the Deep Field strip afresh */
         for (vx = 0; vx < 512; vx += 8)
             draw_slice(vx & 255, (vx >> 8), vx);
         streamed_x = 512;
+        /* Engage the two-page ring: R#25 SP2 (+MSK) and R#2 with
+           the odd-page bit set. Without both bits the V9958 only
+           rotates the picture inside page 0 (R#26 is then masked
+           to 5 bits) and page 1 never reaches the screen. The
+           pair is released again in title_screen()/split_remove()
+           (R#25=0, R#2=0x1f). Measured on the SCREEN 5 build and
+           re-verified for SCREEN 8 - see DESIGN.md. */
+        vdp_reg(25, 3);
+        vdp_reg(2, 0x3f);
     } else {
         disp_page = 0;
         vdp_reg(18, 0);
@@ -762,17 +796,19 @@ static void scroll_update(int scrolling)
 {
     if (!scrolling) return;
     scroll_x++;
-#ifdef NOSCROLL
-    /* Diagnostic variant: the logic distance still advances
-       (spawning and the stage length work as usual) but the
-       background is neither scrolled nor streamed - the initial
-       ring fill stays on screen, frozen. */
-    cur_r26 = 0;
-    cur_r27 = 0;
-    cur_adj = 0;
-    return;
-#else
-    if (is_v9958) {
+    if (!is_v9958) {
+        /* V9938 keeps the shipped frozen-background behaviour:
+           the logic distance still advances (spawning and the
+           stage length work as usual), but the background is
+           neither scrolled nor streamed - the initial fill stays
+           on screen, frozen. No SET ADJUST / HMMM scroll path
+           runs at runtime. */
+        cur_r26 = 0;
+        cur_r27 = 0;
+        cur_adj = 0;
+        return;
+    }
+    {
         int L = (int)(scroll_x & 511);
         cur_r26 = (unsigned char)(((L + 7) >> 3) & 63);
         cur_r27 = (unsigned char)((8 - (L & 7)) & 7);
@@ -781,16 +817,7 @@ static void scroll_update(int scrolling)
             draw_slice(vx & 255, (vx >> 8), streamed_x);
             streamed_x += 8;
         }
-    } else {
-        long newbase = scroll_x & ~7L;
-        cur_adj = (unsigned char)((-(int)(scroll_x & 7)) & 15);
-        if (newbase != base_x) {
-            vdp_hmmm(8, PLAY_Y0, 0, PLAY_Y0, 248, PLAY_H);
-            draw_slice(248, 0, newbase + 248);
-            base_x = newbase;
-        }
     }
-#endif
 }
 
 static void scroll_stop(void)
@@ -1079,11 +1106,16 @@ static void draw_char5(int x, int y, unsigned char ch, int fg, int bg, int scale
     }
     /* One byte per pixel already: stream the glyph rows with
        the CPU (immune to the line-split, like the gauge fill).
-       disp_page is always 0 in the SCR8 build. */
+       The glyphs land on page 0 unless text_page_base is set:
+       the ring-mapped panels (WARNING, end-of-game messages)
+       set it to their ring page for the duration of their
+       draw_str calls. Unlike boxfil, this path does not look
+       at ACPAGE. */
     {
         int r2;
         for (r2 = 0; r2 < 8 * scale; r2++) {
-            vw_addr = (unsigned long)(y + r2) * 256 + (unsigned int)x;
+            vw_addr = text_page_base
+                    + (unsigned long)(y + r2) * 256 + (unsigned int)x;
             vw_src = pix + 4 + r2 * w;
             vw_len = (unsigned int)w;
             vram_write();
@@ -1104,6 +1136,32 @@ static void draw_str_centered(int y, const char *s, int fg, int bg, int scale)
     const char *p = s;
     while (*p) { n++; p++; }
     draw_str((256 - (n * (8 * scale + (scale > 1 ? 2 : 0)))) / 2, y, s, fg, bg, scale);
+}
+static void draw_str_centered_dx(int y, const char *s, int fg, int bg, int scale, int dx)
+{
+    int n = 0;
+    const char *p = s;
+    while (*p) { n++; p++; }
+    draw_str((256 - (n * (8 * scale + (scale > 1 ? 2 : 0)))) / 2 + dx, y, s, fg, bg, scale);
+}
+
+/* Panels drawn while the V9958 ring is scrolled (WARNING, the
+   end-of-game messages) must be written into the ring at the
+   current viewport, not at page-0 physical coordinates. Given a
+   screen-x span [x0, x0+w), compute the ring page it lands in
+   and the offset dx with physical_x = screen_x + dx. Returns 0
+   when the span crosses a ring page boundary (the caller then
+   falls back to resetting the display scroll to 0). On V9938
+   the window is frozen: page 0, dx 0, always succeeds. */
+static int panel_view_at(int sx, int x0, int w, int *page, int *dx)
+{
+    int slot;
+    if (!is_v9958) { *page = 0; *dx = 0; return 1; }
+    slot = (int)((sx + x0) & 511);
+    if ((slot & 255) + w > 256) return 0;
+    *page = slot >> 8;
+    *dx = (slot & 255) - x0;
+    return 1;
 }
 
 /* ============================================================
@@ -1208,28 +1266,59 @@ static void stream_close(void)
     bdos_fn = 0x10; bdos_de = (unsigned int)fcb; bdos_call();  /* close */
 }
 static unsigned char prow[256];
+static void planet8_read_row(int w)
+{
+    int i = 0, n;
+    unsigned char ctrl, b;
+    while (i < w) {
+        ctrl = (unsigned char)sget();
+        if (ctrl == 0x80) continue;
+        if (ctrl > 0x80) {
+            n = 257 - ctrl; b = (unsigned char)sget();
+            while (n-- > 0 && i < w) prow[i++] = b;
+        } else {
+            n = ctrl + 1;
+            while (n-- > 0 && i < w)
+                prow[i++] = (unsigned char)sget();
+        }
+    }
+}
 static void blit_planet8(const char *name11, int x, int y, int w, int h)
 {
-    int r, i, n;
-    unsigned char ctrl, b;
+    int r;
     if (!stream_open(name11)) return;
     for (r = 0; r < h; r++) {
-        i = 0;
-        while (i < w) {
-            ctrl = (unsigned char)sget();
-            if (ctrl == 0x80) continue;
-            if (ctrl > 0x80) {
-                n = 257 - ctrl; b = (unsigned char)sget();
-                while (n-- > 0 && i < w) prow[i++] = b;
-            } else {
-                n = ctrl + 1;
-                while (n-- > 0 && i < w)
-                    prow[i++] = (unsigned char)sget();
-            }
-        }
+        planet8_read_row(w);
         vw_addr = (unsigned long)(y + r) * 256 + (unsigned int)x;
         vw_src = prow; vw_len = (unsigned int)w;
         vram_write();
+    }
+    stream_close();
+}
+
+/* Ring variant of blit_planet8: the image is baked into the
+   512-dot scroll ring at world column wx0, so each decoded row
+   is written in per-page segments (the rect can straddle the
+   page-0/1 boundary and, in general, wrap the ring end). */
+static void blit_planet8_ring(const char *name11, int wx0, int y,
+                              int w, int h)
+{
+    int r, done, slot, chunk;
+    if (!stream_open(name11)) return;
+    for (r = 0; r < h; r++) {
+        planet8_read_row(w);
+        done = 0;
+        while (done < w) {
+            slot = (wx0 + done) & 511;
+            chunk = 256 - (slot & 255);
+            if (chunk > w - done) chunk = w - done;
+            vw_addr = ((unsigned long)(slot >> 8) << 16)
+                    + (unsigned long)(y + r) * 256
+                    + (unsigned int)(slot & 255);
+            vw_src = prow + done; vw_len = (unsigned int)chunk;
+            vram_write();
+            done += chunk;
+        }
     }
     stream_close();
 }
@@ -2979,25 +3068,30 @@ static void restore_panel_step(void)
 {
     int n = 2;
     int was = restore_left;
+    int pg, dx;
+    int ring = panel_view_at((int)scroll_x, 40, 176, &pg, &dx);
     while (n-- > 0 && restore_left < 22) {
         int lx = 40 + restore_left * 8;
-        if (is_v9958) {
-#ifdef NOSCROLL
-            draw_slice(lx, 0, lx);   /* frozen window: ring slot = world x */
-#else
+        if (is_v9958 && ring) {
             int vx = (int)((scroll_x + lx) & 511);
             draw_slice(vx & 255, (vx >> 8), scroll_x + lx);
-#endif
+        } else if (is_v9958) {
+            draw_slice(lx, 0, lx);   /* fallback: display reset to 0 */
         } else {
             draw_slice(lx, 0, base_x + lx);
         }
         restore_left++;
     }
-    /* the cascade repainted plain slices over the baked Earth:
+    /* The cascade repainted plain slices over the baked Earth:
        put the Earth back once the panel area is whole again
        (SCR8: from the spare-VRAM backup taken at stage start -
-       no disk re-read) */
-    if (was < 22 && restore_left >= 22)
+       no disk re-read). In ring mode the panel never covered
+       the Earth - the full-disc bake lives in world columns
+       144..271 and has scrolled off long before the boss - and
+       the spare copy is not taken (streaming would overwrite
+       it anyway), so the put-back runs only on the
+       frozen-window paths. */
+    if (was < 22 && restore_left >= 22 && !(is_v9958 && ring))
         planet8_restore();
 }
 
@@ -3105,6 +3199,7 @@ static void render(void)
 static int play_game(void)
 {
     int i;
+    int pg_tmp, dx_tmp;
     audio_silence();
     palett(15, 0, 6, 7);       /* C_BLINK back to steady cyan */
     /* reset state */
@@ -3125,8 +3220,25 @@ static int play_game(void)
     for (i = 0; i < 6; i++) sparks[i].active = 0;
     for (i = 0; i < 256; i++) { hist_x[i] = (unsigned char)px; hist_y[i] = (unsigned char)py; }
     scroll_setup_stage();
-    blit_planet8("GPL8    DAT", GPL_X, GPL_Y, GPL_W, GPL_H);
-    planet8_backup();   /* spare-VRAM copy for the WARNING restore */
+    /* The baked Earth: on the frozen paths the corner-cropped
+       GPL goes to its fixed window position; in ring mode the
+       full-disc GPLF is baked into the ring instead (see the
+       GPLF defines). The WARNING backup below only ever holds
+       the GPL rect - in ring mode it is not taken (the panel
+       lands in page 1; see restore_panel_step), and the ring
+       Earth has scrolled off long before the boss either way. */
+    if (is_v9958)
+        blit_planet8_ring("GPLF8   DAT", GPLF_WX, GPLF_Y,
+                          GPLF_W, GPLF_H);
+    else
+        blit_planet8("GPL8    DAT", GPL_X, GPL_Y, GPL_W, GPL_H);
+    /* Spare-VRAM Earth copy for the WARNING restore. In ring
+       mode the copy would sit inside the scroll ring (page 1,
+       world columns 398..511) where streaming overwrites it
+       before the boss, and the restore never reads it - take
+       it only on the frozen-window paths. */
+    if (!is_v9958 || !panel_view_at(STAGE_LEN, 40, 176, &pg_tmp, &dx_tmp))
+        planet8_backup();
     draw_hud_static();
     draw_hud_values();
     draw_band_static();
@@ -3150,13 +3262,30 @@ static int play_game(void)
                 phase = PH_WARN;
                 warn_t = 190;
                 scroll_stop();
-                /* WARNING panel (background restored later) */
-                ACPAGE = (unsigned char)disp_page;
-                boxfil(40, 88, 215, 119, C_BLACK, 0);
-                boxfil(40, 88, 215, 88, C_RED, 0);
-                boxfil(40, 119, 215, 119, C_RED, 0);
-                draw_str_centered(96, "WARNING", C_BLINK, C_BLACK, 2);
-                draw_str_centered(112, "ABYSS PRISM LEVIATHAN", C_RED, C_BLACK, 1);
+                /* WARNING panel (background restored later).
+                   On V9958 it is drawn into the scroll ring at
+                   the current viewport (see panel_view); the
+                   restore cascade below redraws exactly those
+                   ring columns. With STAGE_LEN = 2800 the panel
+                   always lands inside page 1; the fallback keeps
+                   any other stop position safe. */
+                {
+                    int pg, dx;
+                    if (!panel_view_at((int)scroll_x, 40, 176, &pg, &dx)) {
+                        cur_r26 = cur_r27 = 0;
+                        vdp_reg(26, 0);
+                        vdp_reg(27, 0);
+                        pg = 0; dx = 0;
+                    }
+                    ACPAGE = (unsigned char)pg;
+                    boxfil(40 + dx, 88, 215 + dx, 119, C_BLACK, 0);
+                    boxfil(40 + dx, 88, 215 + dx, 88, C_RED, 0);
+                    boxfil(40 + dx, 119, 215 + dx, 119, C_RED, 0);
+                    text_page_base = (unsigned long)pg << 16;
+                    draw_str_centered_dx(96, "WARNING", C_BLINK, C_BLACK, 2, dx);
+                    draw_str_centered_dx(112, "ABYSS PRISM LEVIATHAN", C_RED, C_BLACK, 1, dx);
+                    text_page_base = 0;
+                }
                 restore_left = 0;
                 bgm_restart(2);
             }
@@ -3199,15 +3328,29 @@ static int play_game(void)
 
 static void draw_message(const char *big, int col, const char *sub)
 {
+    int pg, dx;
     audio_silence();
-    ACPAGE = (unsigned char)disp_page;
-    boxfil(28, 76, 227, 132, C_BLACK, 0);
-    boxfil(28, 76, 227, 76, C_CYAN, 0);
-    boxfil(28, 132, 227, 132, C_CYAN, 0);
-    boxfil(28, 76, 28, 132, C_CYAN, 0);
-    boxfil(227, 76, 227, 132, C_CYAN, 0);
-    draw_str_centered(84, big, col, C_BLACK, 2);
-    draw_str_centered(116, sub, C_BLINK, C_BLACK, 1);
+    /* Same ring mapping as the WARNING panel: after a clear the
+       viewport is still frozen at the stage end, so the message
+       is drawn into the ring. If a game over stopped the stage
+       where the span would cross a ring page boundary, reset
+       the display scroll to 0 and draw on page 0 instead. */
+    if (!panel_view_at((int)scroll_x, 28, 200, &pg, &dx)) {
+        cur_r26 = cur_r27 = 0;
+        vdp_reg(26, 0);
+        vdp_reg(27, 0);
+        pg = 0; dx = 0;
+    }
+    ACPAGE = (unsigned char)pg;
+    boxfil(28 + dx, 76, 227 + dx, 132, C_BLACK, 0);
+    boxfil(28 + dx, 76, 227 + dx, 76, C_CYAN, 0);
+    boxfil(28 + dx, 132, 227 + dx, 132, C_CYAN, 0);
+    boxfil(28 + dx, 76, 28 + dx, 132, C_CYAN, 0);
+    boxfil(227 + dx, 76, 227 + dx, 132, C_CYAN, 0);
+    text_page_base = (unsigned long)pg << 16;
+    draw_str_centered_dx(84, big, col, C_BLACK, 2, dx);
+    draw_str_centered_dx(116, sub, C_BLINK, C_BLACK, 1, dx);
+    text_page_base = 0;
     hide_sprites();
 }
 
@@ -3217,6 +3360,8 @@ static int title_screen(void)
     audio_silence();
     if (is_v9958) {
         disp_page = 0;   /* V9958 ring: pages 0+1, left = 0 */
+        vdp_reg(25, 0);   /* release the two-page ring (SP2/MSK) */
+        vdp_reg(2, 0x1f);
         vdp_reg(26, 0);
         vdp_reg(27, 0);
     } else {

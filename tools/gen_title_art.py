@@ -294,7 +294,17 @@ def write_planets8():
     import os
     os.makedirs("data", exist_ok=True)
     specs = (("TPL", 32, 78, 192, 106, 96, 90, 85, 600, 17),
-             ("GPL", 142, 100, 114, 84, 66, 62, 56, 0, 23))
+             ("GPL", 142, 100, 114, 84, 66, 62, 56, 0, 23),
+             # GPLF: the full-disc version of the in-game Earth for
+             # the V9958 scroll ring. The GPL rect crops the disc
+             # (right 8 px / bottom 34 px) for its frozen corner
+             # composition; carried across the screen by the ring,
+             # those crops showed as straight cuts through the
+             # disc. GPLF holds the whole disc + glow: rect
+             # (144,40) 128x128 in world/screen coords, centre
+             # (64,64) -> disc centre at world (208,104), same
+             # renderer and seed as GPL.
+             ("GPLF", 144, 40, 128, 128, 64, 64, 56, 0, 23))
     for name, x0, y0, w, h, ccx, ccy, r, wx0, seed in specs:
         base = backdrop_df_rgb(w, h, x0, y0)
         rgb, cover = earth_rgb(w, h, ccx, ccy, r, seed)
