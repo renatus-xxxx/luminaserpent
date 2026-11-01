@@ -19,6 +19,10 @@
 地球を背に **ABYSS PRISM LEVIATHAN** が待ち受けます。コアは
 周回する4つの破片に守られています。
 
+背景スクロールは MSX2+ / MSX turboR（V9958）に対応して
+います。MSX2（V9938）では背景が固定になりますが、ゲーム
+内容は同一です。
+
 ## プレイ / ダウンロード
 
 - [WebMSX で遊ぶ (MSXturboR)](https://webmsx.org/?MACHINE=MSXTRJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)

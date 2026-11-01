@@ -20,6 +20,10 @@ ECHO / HALO** — and at the end of the stage the
 **ABYSS PRISM LEVIATHAN** waits in front of the Earth, its core
 shielded by four orbiting shards.
 
+The background scrolls on MSX2+ / MSX turboR (V9958). On
+MSX2 (V9938) the background stays fixed, and the game itself
+is identical.
+
 ## Play / Download
 
 - [Play on WebMSX (MSX turboR)](https://webmsx.org/?MACHINE=MSXTRJ&DISKA_URL=https://raw.githubusercontent.com/renatus-xxxx/luminaserpent/main/dist/LUMINA.DSK&FAST_BOOT)
