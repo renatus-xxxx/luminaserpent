@@ -60,8 +60,6 @@ adding the data files (`data/tpl8.dat`, `data/gpl8.dat`,
 - Requires MSX2 or higher (SCREEN 8, i.e. V9938 or later).
   MSX1 is not supported.
 - On V9958 (MSX2+ / turboR) the background scrolls in
-  hardware (two-page ring, R#26/R#27); the Earth baked into
-  the ring is the full disc (`data/gplf8.dat`). On V9938
-  (MSX2) the background stays frozen - with the corner-crop
-  Earth (`data/gpl8.dat`) - and gameplay is identical.
+  hardware. On V9938 (MSX2) the background stays fixed
+  (the game itself is identical).
 - Sound is PSG only.
