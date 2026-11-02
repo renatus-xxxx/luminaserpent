@@ -29,9 +29,9 @@
 - [LUMINA.DSK](dist/LUMINA.DSK) — 起動可能な 720KB ディスクイメージ（自動起動）
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
-現在のビルド :`LUMINA.COM` 50,658 bytes、
-MD5 `dc7a4c9fbd259d0c12f5efda36f9aff3`；
-`LUMINA.DSK` MD5 `92ce3e48f7db2ef757e45ce7b4320999`。
+現在のビルド :`LUMINA.COM` 50,918 bytes、
+MD5 `c685bc18b2518a9e0ee234bfd93f761d`；
+`LUMINA.DSK` MD5 `adfb4ab2e56ed070d4651addc72a103d`。
 
 ## 操作
 
