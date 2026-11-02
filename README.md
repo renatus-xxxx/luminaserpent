@@ -30,8 +30,9 @@ is identical.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build :`LUMINA.COM` 50,561 bytes,
-MD5 `1d6f3e242c5018e3dce23f5b56e52b36`.
+Current build :`LUMINA.COM` 50,610 bytes,
+MD5 `e8183b91d358998f0127b9b086e6f5c4`;
+`LUMINA.DSK` MD5 `1d01760de34847c00a82e1361e7f8d1d`.
 
 ## Controls
 
@@ -53,7 +54,7 @@ Requires z88dk (classic library, `+msx` target). The default
 build produces `LUMINA.COM`; `tools/make_dsk.py` packs it
 into the bootable disk image using a template MSX-DOS disk,
 adding the data files (`data/tpl8.dat`, `data/gpl8.dat`,
-`data/gplf8.dat`, `data/logo.dat`).
+`data/gplf8.dat`, `data/logo.dat`, `data/spark.dat`).
 
 ## Notes
 

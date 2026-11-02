@@ -1167,8 +1167,10 @@ static int panel_view_at(int sx, int x0, int w, int *page, int *dx)
 /* ============================================================
  * Sprites: patterns 0..15 are authored below, 16..24 (boss tiles),
  * 25..41 (laser slopes), 42..58 (PRISM slopes) and 59..60 (item
- * letters, two dynamic slots) are generated at init; pattern 61
- * (the spark's second frame) is authored with the others.
+ * letters, two dynamic slots) are generated at init; the spark's
+ * three explosion frames live in pattern 13 and patterns 61..62
+ * (streamed from SPARK.DAT - the pattern window ends at 0xF800
+ * where the colour table sits, so 64 patterns is the hard cap).
  * Per-frame the used planes are packed in priority order and both
  * the attribute table (128 bytes) and the colour table are flushed
  * with single ldirvm calls, because plane assignment is dynamic.
@@ -1193,10 +1195,11 @@ static int panel_view_at(int sx, int x0, int w, int *page, int *dx)
 #define PAT_BEAM    25   /* ..41 slopes -8..+8 */
 #define PAT_PRISM   42   /* ..58 slopes -8..+8 */
 #define PAT_LETTER  59   /* ..60 dynamic */
-#define PAT_SPARK2  61   /* spark frame 2: expanding ring */
+#define PAT_SPARK2  61   /* spark explosion frames 1..2: 61..62 */
+#define PAT_SPARK3  62
 
-static unsigned char pat_data[62][32];
-static unsigned char pat_col[62][16];
+static unsigned char pat_data[63][32];
+static unsigned char pat_col[63][16];
 /* GRAPHIC 7 sprite colours go through the VDP's fixed GRB
    table (see the note at the S_* constants), not the
    programmable palette. Every writer of pat_col therefore
@@ -1659,49 +1662,29 @@ static const char *art_missile[16] = {
 static const unsigned char col_missile[16] = {
     0,0,0,0,11,11,11,14,11,3,3,3,0,0,0,0
 };
-static const char *art_spark[16] = {
-    ".......##.......",
-    ".......##.......",
-    "...#...##...#...",
-    "....#..##..#....",
-    ".....#####......",
-    "################",
-    "################",
-    ".....#####......",
-    "....#..##..#....",
-    "...#...##...#...",
-    ".......##.......",
-    ".......##.......",
-    "................",
-    "................",
-    "................",
-    "................"
+/* Spark explosion: pixelfx 'Firework burst', candidate C
+   (pixelfx, MIT License, Copyright (c) 2026 Patch; the flare /
+   twinkle / glitter parts of the effect adapt Sprite Fusion's
+   open-source sparkle, MIT, Copyright (c) 2026 Hugo Duprez),
+   recoloured warm with its palette / core ramps anchored on
+   the previous spark's own colours (yellow / orange / white)
+   and converted offline: 96x96 window in 6x6 cells, >=25%
+   coverage, one G7 colour per row. Three frames are used
+   (burst point / expanding star ball / falling sparks). The
+   packed data (pattern 32 bytes + G7 row colours 16 bytes
+   per frame, 144 bytes) lives in data/spark.dat on the game
+   disk and is streamed in at setup, like the Earth images
+   and the logo mask: embedding it in the .COM outgrew the
+   DOS memory ceiling.
+   Trial pipeline: ~/workspace/msx/pixelfx-trial/
+   (render_firework.mjs + convert_firework.py). */
+/* pattern slots of the three spark frames, and the frame
+   each of the spark's 10 life ticks shows */
+static const unsigned char spark_pats[3] = {
+    PAT_SPARK, PAT_SPARK2, PAT_SPARK3
 };
-static const unsigned char col_spark[16] = {
-    10,10,10,10,11,11,14,11,10,10,10,10,0,0,0,0
-};
-/* spark frame 2: the flash (PAT_SPARK) gives way to this
-   expanding octagonal ring for the second half of its life */
-static const char *art_spark2[16] = {
-    "................",
-    ".....######.....",
-    "...##......##...",
-    "..#..........#..",
-    "..#..........#..",
-    ".#............#.",
-    ".#............#.",
-    ".#............#.",
-    ".#............#.",
-    ".#............#.",
-    ".#............#.",
-    "..#..........#..",
-    "..#..........#..",
-    "...##......##...",
-    ".....######.....",
-    "................"
-};
-static const unsigned char col_spark2[16] = {
-    0,11,10,10,10,10,10,10,10,10,10,10,10,10,11,0
+static const unsigned char spark_ftab[10] = {
+    0, 0, 0, 1, 1, 1, 2, 2, 2, 2
 };
 /* round 2: boss-B dialect -- angular diamond plate with a
    bite notch on the core rows, white seam row, teal tip
@@ -1883,8 +1866,20 @@ static void setup_sprites(void)
     pat_from_art(PAT_PBUL, art_pbul, col_pbul);
     pat_from_art(PAT_EBUL, art_ebul, col_ebul);
     pat_from_art(PAT_MISSILE, art_missile, col_missile);
-    pat_from_art(PAT_SPARK, art_spark, col_spark);
-    pat_from_art(PAT_SPARK2, art_spark2, col_spark2);
+    /* spark frames: stream the packed pixelfx data in from
+       SPARK.DAT (the colour bytes are already direct G7 codes,
+       like every pat_col writer since the colour
+       pre-computation) */
+    if (stream_open("SPARK   DAT")) {
+        int f, b;
+        for (f = 0; f < 3; f++) {
+            for (b = 0; b < 32; b++)
+                pat_data[spark_pats[f]][b] = (unsigned char)sget();
+            for (b = 0; b < 16; b++)
+                pat_col[spark_pats[f]][b] = (unsigned char)sget();
+        }
+        stream_close();
+    }
     pat_from_art(PAT_SHARD, art_shard, col_shard);
     pat_from_art(PAT_HALO, art_halo, col_halo);
     gen_boss_patterns();
@@ -1893,7 +1888,7 @@ static void setup_sprites(void)
     /* upload the pattern table through the raw writer in
        logical (PATBAS-relative) addresses instead of msxclib's
        linear sprite() */
-    for (i = 0; i < 62; i++) {
+    for (i = 0; i < 63; i++) {
         vw_addr = (unsigned long)(*(unsigned int *)0xf926)
                 + (unsigned long)(i * 32);
         vw_src = (unsigned char *)pat_data[i];
@@ -3180,11 +3175,11 @@ static void render(void)
             spr_add_t(items[i].x - 8, items[i].y - 8, PAT_CAPSULE,
                       cap_tint[items[i].type]);
         }
-    /* sparks: flash first, then the expanding ring */
+    /* sparks: three-frame explosion over the 10-tick life */
     for (i = 0; i < 6; i++)
         if (sparks[i].active)
             spr_add(sparks[i].x - 8, sparks[i].y - 8,
-                    sparks[i].t < 5 ? PAT_SPARK : PAT_SPARK2);
+                    spark_pats[spark_ftab[sparks[i].t]]);
     /* enemy bullets */
     for (i = 0; i < 24; i++)
         if (ebul[i].active)

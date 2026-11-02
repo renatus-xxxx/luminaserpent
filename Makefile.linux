@@ -5,10 +5,11 @@
 #       src/main.c src/msxclib.c src/msxalib.c -bn LUMINA.COM
 #   python3 tools/make_dsk.py <try16 template DSK> LUMINA.COM \
 #       LUMINA.DSK data/tpl8.dat data/gpl8.dat data/gplf8.dat \
-#       data/logo.dat
+#       data/logo.dat data/spark.dat
 # (the Earth images - title, in-game corner crop, and the
-# full-disc version for the V9958 scroll ring - and the title
-# logo mask are streamed from the data/*.dat files on the disk.)
+# full-disc version for the V9958 scroll ring - the title
+# logo mask and the spark explosion frames are streamed from
+# the data/*.dat files on the disk.)
 #
 # Libraries: msxalib.{h,c} / msxclib.{h,c} by yamayamaru
 # (yamayamaru-storage-place, source-code_2023-09-30).
@@ -25,7 +26,7 @@ DSK    := $(BUILD)/LUMINA.DSK
 SRCS   := src/main.c src/msxclib.c src/msxalib.c
 HDRS   := src/msxalib.h src/msxclib.h src/font.h src/title_img.h src/deepfield.h
 DEFS   :=
-DATA8  := data/tpl8.dat data/gpl8.dat data/gplf8.dat data/logo.dat
+DATA8  := data/tpl8.dat data/gpl8.dat data/gplf8.dat data/logo.dat data/spark.dat
 DSK_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))../try16/bin/TRY16.DSK
 DSK_TOOL := tools/make_dsk.py
 

@@ -29,8 +29,9 @@
 - [LUMINA.DSK](dist/LUMINA.DSK) — 起動可能な 720KB ディスクイメージ（自動起動）
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
-現在のビルド :`LUMINA.COM` 50,561 bytes、
-MD5 `1d6f3e242c5018e3dce23f5b56e52b36`。
+現在のビルド :`LUMINA.COM` 50,610 bytes、
+MD5 `e8183b91d358998f0127b9b086e6f5c4`；
+`LUMINA.DSK` MD5 `1d01760de34847c00a82e1361e7f8d1d`。
 
 ## 操作
 
@@ -52,7 +53,8 @@ z88dk（クラシックライブラリ、`+msx` ターゲット）が必要で�
 既定のビルドは `LUMINA.COM` を生成し、`tools/make_dsk.py` が
 テンプレートの MSX-DOS ディスクを使って起動可能なディスク
 イメージにまとめます（データファイル `data/tpl8.dat` /
-`data/gpl8.dat` / `data/gplf8.dat` / `data/logo.dat` も収録）。
+`data/gpl8.dat` / `data/gplf8.dat` / `data/logo.dat` /
+`data/spark.dat` も収録）。
 
 ## 注意
 
