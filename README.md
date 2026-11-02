@@ -30,9 +30,9 @@ is identical.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build :`LUMINA.COM` 50,918 bytes,
-MD5 `10c6990db4b082d7dc2ea09725f9028b`;
-`LUMINA.DSK` MD5 `3e5f41e0131fc3a5fa45922ff4d90958`.
+Current build :`LUMINA.COM` 49,434 bytes,
+MD5 `0c7a0dcf0900a720d873215296874718`;
+`LUMINA.DSK` MD5 `b732bfbd03f73ae7377b83c5ec88d873`.
 
 ## Controls
 

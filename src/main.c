@@ -2055,80 +2055,28 @@ _vw_done:
    addresses (bitmap: y*256+x; tables: their BIOS bases) go
    straight to the raw stream writer above. */
 
-/* ---- VRAM byte read + title prompt strip cache (SCR8) ----
+/* ---- Title prompt strip caches in spare VRAM (SCR8) ----
    The PRESS prompt at (48,140) sits entirely on top of the
    title Earth (disk x 48..208 at that row), so painting the
    blink-off state with the background colour leaves a black
-   bar across the planet. Instead, the bitmap strip under the
-   prompt is cached at title entry and written back on the
-   blink-off phase. Reads go one byte at a time through the
-   same physical mapping the writer uses. */
-static unsigned long vr_addr;
-static unsigned char vr_byte;
-static void vram_read1(void)
-{
-#asm
-        ld      a,(_rdport)
-        inc     a
-        ld      c,a
-        ld      b,0
-        di
-        ld      a,(_vr_addr+2)
-        and     1
-        ld      h,a
-        ld      a,(_vr_addr+1)
-        rlca
-        rlca
-        and     3
-        ld      l,a
-        ld      a,h
-        add     a,a
-        add     a,a
-        or      l
-        out     (c),a
-        ld      a,8eh
-        out     (c),a
-        ld      a,(_vr_addr)
-        out     (c),a
-        ld      a,(_vr_addr+1)
-        and     3fh
-        out     (c),a
-        ei
-        ld      a,(_rdport)
-        ld      c,a
-        in      a,(c)
-        ld      (_vr_byte),a
-#endasm
-}
-static unsigned long scr8_phys(unsigned long a)
-{
-    return a;
-}
+   bar across the planet. Both blink states of the strip are
+   cached in the off-screen rows 212..227 of page 0 (below
+   the 212 visible rows, above the sprite tables at row
+   240): at title entry the Earth-only strip and the drawn
+   prompt strip are HMMM-copied aside, and each blink toggle
+   is a single HMMM copy back. The copies matter for the
+   audio: audio_update() runs once per frame_sync(), and the
+   old blink-on path redrew all 20 prompt characters with
+   draw_str_centered() - measured 9 jiffies (150 ms) inside
+   one frame, which froze the title BGM arpeggio audibly on
+   every blink cycle. (The earlier RAM cache with its
+   byte-wise VRAM readback sped up only the off phase; it is
+   gone, which also frees its 1,280 B BSS buffer.) */
 #define PRESS_X 48
 #define PRESS_Y 140
 #define PRESS_W 160
-static unsigned char press_strip[8 * PRESS_W];
-static void press_strip_save(void)
-{
-    int r, i;
-    for (r = 0; r < 8; r++)
-        for (i = 0; i < PRESS_W; i++) {
-            vr_addr = scr8_phys((unsigned long)(PRESS_Y + r) * 256
-                                + PRESS_X + i);
-            vram_read1();
-            press_strip[r * PRESS_W + i] = vr_byte;
-        }
-}
-static void press_strip_show(void)
-{
-    int r;
-    for (r = 0; r < 8; r++) {
-        vw_addr = (unsigned long)(PRESS_Y + r) * 256 + PRESS_X;
-        vw_src = press_strip + r * PRESS_W;
-        vw_len = PRESS_W;
-        vram_write();
-    }
-}
+#define PRESS_EARTH_Y 212   /* cached Earth-only strip rows */
+#define PRESS_TEXT_Y  220   /* cached drawn-prompt strip rows */
 
 /* ---- title logo: 1bpp outline mask + code-drawn beam ----
    The full-colour logo bake (5,117 B) pushed BSS past the DOS
@@ -3453,8 +3401,12 @@ static int title_screen(void)
     blit_logo_mask(disp_page);
     trace_step(11, is_v9958 ? 0x8000 : 0);
     draw_str_centered(122, "BEND THE LASER - FEED RESONANCE", C_ICE, C_BG, 1);
-    press_strip_save();   /* Earth strip under the prompt */
+    /* Cache both blink states of the prompt strip in spare
+       VRAM (see the PRESS_* defines): first the Earth-only
+       strip currently on screen, then the drawn prompt. */
+    vdp_hmmm(PRESS_X, PRESS_Y, PRESS_X, PRESS_EARTH_Y, PRESS_W, 8);
     draw_str_centered(140, "PRESS SPACE TO START", C_BLINK, C_BG, 1);
+    vdp_hmmm(PRESS_X, PRESS_Y, PRESS_X, PRESS_TEXT_Y, PRESS_W, 8);
     draw_str_centered(164, "CURSOR / STICK : MOVE", C_WHITE, C_BG, 1);
     draw_str_centered(176, "SPACE / TRIGGER : SHOT", C_WHITE, C_BG, 1);
     trace_step(12, is_v9958 ? 0x8000 : 0);
@@ -3478,11 +3430,14 @@ static int title_screen(void)
             else palett(15, 0, 6, 7);
             /* the bitmap ignores the palette in SCREEN 8, so
                the prompt blink is a redraw, not a palett swap;
-               the off phase restores the Earth strip instead of
-               painting a background-coloured bar over it */
-            if (blink) press_strip_show();
-            else draw_str_centered(140, "PRESS SPACE TO START",
-                                   C_BLINK, C_BG, 1);
+               both phases are single HMMM copies from the
+               strips cached at title entry - a full redraw of
+               the 20 prompt characters here cost 9 jiffies in
+               one frame and stalled the BGM update audibly */
+            if (blink) vdp_hmmm(PRESS_X, PRESS_EARTH_Y,
+                                PRESS_X, PRESS_Y, PRESS_W, 8);
+            else vdp_hmmm(PRESS_X, PRESS_TEXT_Y,
+                          PRESS_X, PRESS_Y, PRESS_W, 8);
         }
         /* decor: the ship and a prism crystal */
         spr_reset();
