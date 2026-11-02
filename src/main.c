@@ -2466,6 +2466,22 @@ static void draw_band_static(void)
     ACPAGE = (unsigned char)disp_page;
     boxfil(0, BAND_Y, 255, 211, C_BLACK, 0);
     boxfil(0, BAND_Y, 255, BAND_Y, C_BG2, 0);
+    if (is_v9958) {
+        /* The separator line sits exactly ON the split line: the
+           split handler's scroll reset, written when the raster
+           reaches line 184, takes effect from line 185 - line 184
+           itself is still displayed through the scrolled ring
+           window (measured: its visible span is the intersection
+           of the window with page 0's half of the ring). Paint
+           the line into both ring pages so the window shows the
+           same line at every scroll position and it reads as one
+           static line. Page 1's band rows are never displayed
+           (lines 185+ run at scroll 0 on page 0), so nothing else
+           changes. */
+        ACPAGE = 1;
+        boxfil(0, BAND_Y, 255, BAND_Y, C_BG2, 0);
+        ACPAGE = (unsigned char)disp_page;
+    }
     band_dirty = 0x3f;
 }
 static void draw_band_one(void)
