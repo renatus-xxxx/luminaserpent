@@ -30,8 +30,8 @@
 - [LUMINA.COM](dist/LUMINA.COM) — MSX-DOS プログラム単体
 
 現在のビルド :`LUMINA.COM` 50,918 bytes、
-MD5 `c685bc18b2518a9e0ee234bfd93f761d`；
-`LUMINA.DSK` MD5 `adfb4ab2e56ed070d4651addc72a103d`。
+MD5 `10c6990db4b082d7dc2ea09725f9028b`；
+`LUMINA.DSK` MD5 `3e5f41e0131fc3a5fa45922ff4d90958`。
 
 ## 操作
 

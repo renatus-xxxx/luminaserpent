@@ -2462,7 +2462,7 @@ static void draw_hud_values(void)
 
 /* ---- equipment band ---- */
 static const char *slot_names[6] = {
-    "T THRUST", "C COMET", "D DUAL", "P PRISM", "E ECHO", "H HALO"
+    "THRUST", "COMET", "DUAL", "PRISM", "ECHO", "HALO"
 };
 static int slot_owned(int i)
 {
@@ -2491,7 +2491,7 @@ static int *const slot_state[6] = {
 };
 /* digit cell offset within a numbered slot (name length + 1
    characters), 0 for the flag slots */
-static const unsigned char band_digoff[6] = { 72, 0, 0, 0, 56, 56 };
+static const unsigned char band_digoff[6] = { 56, 0, 0, 0, 40, 40 };
 static void band_full(int i, int x, int y)
 {
     char buf[16];
