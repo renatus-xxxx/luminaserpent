@@ -25,8 +25,21 @@
  *     exactly as the former NOSCROLL build did on both VDPS.
  * A line-interrupt screen split (H.KEYI hook, R#19) keeps the top
  * HUD (lines 0..15) and the bottom equipment band (184..211)
- * un-scrolled: the split applies scroll=0 above line 16 and below
- * line 184, the game scroll in between on V9958.
+ * un-scrolled: the split applies scroll=0 above the play area and
+ * below line 184, the game scroll in between on V9958. The upper
+ * split is armed at line 11, well above the play area: the
+ * handler's scroll-register writes only reach the display about
+ * two and a half lines after the armed line (measured on
+ * openMSX with VRAM colour markers and the scroll pinned:
+ * arming at 16, 15, 14 or 13 all left line 16 partly or wholly
+ * showing the un-scrolled page 0 - the mirror image of the
+ * line-184 separator bug fixed earlier). Arming at 11 puts the
+ * transition inside lines 14-15, which are pure black in both
+ * pages' VRAM, and line 16 then scrolls across its whole width,
+ * with the same page boundary as every other play line. (At
+ * the bottom the same lag is invisible: line 185 is blank, and
+ * the drawn separator on line 184 itself is duplicated on both
+ * pages.)
  *
  * Audio: PSG direct OUT (ports 0xA0/0xA1, register shadow), the
  * STAR BREAKER (MSX) sequencer: A = arpeggio, B = bass, C = SE,
@@ -437,10 +450,12 @@ static void boxfil8(int x1, int y1, int x2, int y2, int color, int logi)
 
 /* ============================================================
  * Line-interrupt screen split (H.KEYI hook)
- *   split_stage 0: next line interrupt is at line 16 -> apply the
- *                  game scroll, re-arm at line 184.
+ *   split_stage 0: next line interrupt is at line 11 -> apply the
+ *                  game scroll (effective from line 16, the first
+ *                  play line; lines 14-15 absorb the handler lag
+ *                  and are black in both pages), re-arm at 184.
  *   split_stage 1: next line interrupt is at line 184 -> apply
- *                  scroll 0, re-arm at line 16.
+ *                  scroll 0, re-arm at line 11.
  * The VBlank period and the HUD/band lines therefore always run
  * with scroll 0 on both VDP paths. The handler only writes the
  * scroll registers (and R#19); it reads status register 1 to
@@ -485,7 +500,7 @@ static void split_install(void)
 #else
     hook_do_arm = 1; hook_do_apply = 1;   /* full handler */
 #endif
-    vdp_reg(19, 16);
+    vdp_reg(19, 11);
     hook[0] = 0xc3;                                  /* JP handler */
     hook[1] = (unsigned char)((int)hook_img & 0xff);
     hook[2] = (unsigned char)((int)hook_img >> 8);
@@ -3489,6 +3504,11 @@ int main(void)
     screen(8);
     trace_step(1, 0);
     setup_palette();
+    /* Border (backdrop) to black: CHGMOD leaves R#7 pointing at
+       palette index 1, which the stock MSX palette renders black
+       but setup_palette() above defines as (0,0,1) - so the frame
+       around the picture showed dark blue. Index 0 is (0,0,0). */
+    vdp_reg(7, 0);
     trace_step(2, 0);
     detect_vdp();
     cpu_init_r800();
@@ -3595,7 +3615,7 @@ static void split_handler(void)
     out     (c),a
     ; not a line interrupt: this is the BIOS VBlank call. Force
     ; the stage machine back into sync (stage 0, next line IRQ
-    ; at line 16) so a stage missed inside a main-thread DI
+    ; at line 11) so a stage missed inside a main-thread DI
     ; stretch re-aligns on the next display frame instead of
     ; drifting - with permanent arming a stale stage would
     ; otherwise leave the game scroll applied across the
@@ -3609,7 +3629,7 @@ static void split_handler(void)
     jr      z,_sph_exit_early
     xor     a
     ld      (_split_stage),a
-    ld      a,16
+    ld      a,11
     out     (c),a
     ld      a,93h           ; register 19 (line interrupt)
     out     (c),a
@@ -3648,7 +3668,7 @@ _sph_body:
     ld      a,(_split_stage)
     or      a
     jr      nz,_sph_stage2
-    ; ---- line 16 reached: apply game scroll ----
+    ; ---- line 11 reached: apply game scroll (from line 16) ----
     ld      a,(_hook_do_apply)
     or      a
     jr      z,_sph_arm2
@@ -3706,7 +3726,7 @@ _sph_adj2:
     ld      a,92h
     out     (c),a
 _sph_arm1:
-    ld      a,16
+    ld      a,11
     out     (c),a
     ld      a,93h
     out     (c),a
