@@ -13,16 +13,26 @@
  * Horizontal scrolling follows Konami's SPACE MANBOW (MSX, 1989):
  * a coarse scroll in 8-dot steps combined with a 1-dot fine scroll,
  * and the fine-scroll implementation switches by VDP:
- *   - V9958 (MSX2+ / turboR): hardware scroll R#26/R#27 with
- *     R#25 MSK (left 8 dots masked, so the border does not flip)
- *     and SP2 (two-page, 512-dot wide ring). Coarse steps are also
- *     done by R#26; new 8-dot columns are streamed into the hidden
- *     half of the ring. No bitmap copy ever happens.
- *   - V9938 (MSX2): the background is deliberately kept frozen.
- *     The SET ADJUST + HMMM software-scroll path that used to run
- *     here cost a full-width bitmap copy every 8 dots; the shipped
- *     runtime instead advances only the logic distance on V9938,
- *     exactly as the former NOSCROLL build did on both VDPS.
+ *   - V9958 with the R800 running (turboR): hardware scroll
+ *     R#26/R#27 with R#25 MSK (left 8 dots masked, so the border
+ *     does not flip) and SP2 (two-page, 512-dot wide ring).
+ *     Coarse steps are also done by R#26; new 8-dot columns are
+ *     streamed into the hidden half of the ring. No bitmap copy
+ *     ever happens.
+ *   - V9938 (MSX2) and V9958 on a Z80 machine (MSX2+): the
+ *     background is deliberately kept frozen. The SET ADJUST +
+ *     HMMM software-scroll path that used to run here cost a
+ *     full-width bitmap copy every 8 dots; the shipped runtime
+ *     instead advances only the logic distance, exactly as the
+ *     former NOSCROLL build did on both VDPS. The ring is not
+ *     engaged on an MSX2+ either: the line-interrupt handler
+ *     lands about seven raster lines later on the Z80 than on
+ *     the R800 (measured), which is more than the line-184
+ *     split's margin, so the equipment band's top text row was
+ *     displayed through the scrolled ring window. Restricting
+ *     the ring to the R800 keeps the MSX2+ on the frozen path,
+ *     where the handler's landing point is harmless (it only
+ *     ever applies scroll 0 / adjust 0 there).
  * A line-interrupt screen split (H.KEYI hook, R#19) keeps the top
  * HUD (lines 0..15) and the bottom equipment band (184..211)
  * un-scrolled: the split applies scroll=0 above the play area and
@@ -263,6 +273,13 @@ static void trace_step(int n, unsigned int base)
 /* VDP id from status register 1, bits 5..1:
    V9938 -> 0, V9958 -> 2. */
 static int is_v9958;
+/* Ring (hardware-scroll) mode, decided once at startup in main():
+   is_v9958 && is_turbor. Every "does the display use the two-page
+   ring" decision keys off this flag, so an MSX2+ (V9958 + Z80)
+   follows exactly the V9938 frozen-background code path; is_v9958
+   itself remains only for pure VDP-chip questions. See the header
+   comment for the measured Z80 handler-landing reason. */
+static int scroll_on;
 static void detect_vdp(void)
 {
 #ifdef DETECT_OFF
@@ -546,7 +563,7 @@ static void split_remove(void)
     vdp_reg(0, *(unsigned char *)0xf3df & 0xef);   /* IE1 off, mode kept */
     vdp_reg(19, 0);
     for (i = 0; i < 5; i++) hook[i] = hook_saved[i];
-    if (is_v9958) {
+    if (scroll_on) {
         vdp_reg(25, 0);
         vdp_reg(26, 0);
         vdp_reg(27, 0);
@@ -723,10 +740,10 @@ static void draw_slice(int lx, int page, long wx)
        page-1 slices back (the only page-1 consumers are the DF
        strip and the Earth backup, both written directly), so skip
        page-1 slices entirely - this halves the stage-build slice
-       cost, which the denser Deep Field stars raised. On V9958
-       page 1 is the second half of the scroll ring and every
-       slice is required. */
-    if (!is_v9958 && page == 1) return;
+       cost, which the denser Deep Field stars raised. In ring
+       mode page 1 is the second half of the scroll ring and
+       every slice is required. */
+    if (!scroll_on && page == 1) return;
     /* background: HMMM the pre-rendered strip (its Bayer phase
        is aligned to x&3 and every call site is 8-dot aligned,
        so the copy lands phase-exact on any slice). The strip
@@ -753,8 +770,8 @@ static void scroll_setup_stage(void)
 {
     int vx;
     scroll_x = 0;
-    if (is_v9958) {
-        disp_page = 0;   /* V9958 ring: pages 0+1, left = 0 */
+    if (scroll_on) {
+        disp_page = 0;   /* ring: pages 0+1, left = 0 */
         /* Fill the whole 512-dot ring first; the SP2 pair
            (R#25/R#2) is engaged at the end of the fill below. */
         vdp_reg(26, 0);
@@ -811,13 +828,14 @@ static void scroll_update(int scrolling)
 {
     if (!scrolling) return;
     scroll_x++;
-    if (!is_v9958) {
-        /* V9938 keeps the shipped frozen-background behaviour:
-           the logic distance still advances (spawning and the
-           stage length work as usual), but the background is
-           neither scrolled nor streamed - the initial fill stays
-           on screen, frozen. No SET ADJUST / HMMM scroll path
-           runs at runtime. */
+    if (!scroll_on) {
+        /* The frozen paths (V9938, and V9958 on a Z80 MSX2+)
+           keep the shipped frozen-background behaviour: the
+           logic distance still advances (spawning and the stage
+           length work as usual), but the background is neither
+           scrolled nor streamed - the initial fill stays on
+           screen, frozen. No SET ADJUST / HMMM scroll path runs
+           at runtime. */
         cur_r26 = 0;
         cur_r27 = 0;
         cur_adj = 0;
@@ -838,8 +856,9 @@ static void scroll_update(int scrolling)
 static void scroll_stop(void)
 {
     /* Freeze: the split handler keeps applying the last scroll
-       values (cur_r26/cur_r27 on V9958, cur_adj on V9938), so the
-       background stays exactly where it stopped for the boss. */
+       values (cur_r26/cur_r27 in ring mode, cur_adj on the
+       frozen paths), so the background stays exactly where it
+       stopped for the boss. */
 }
 
 /* ============================================================
@@ -1160,18 +1179,19 @@ static void draw_str_centered_dx(int y, const char *s, int fg, int bg, int scale
     draw_str((256 - (n * (8 * scale + (scale > 1 ? 2 : 0)))) / 2 + dx, y, s, fg, bg, scale);
 }
 
-/* Panels drawn while the V9958 ring is scrolled (WARNING, the
+/* Panels drawn while the ring is scrolled (WARNING, the
    end-of-game messages) must be written into the ring at the
    current viewport, not at page-0 physical coordinates. Given a
    screen-x span [x0, x0+w), compute the ring page it lands in
    and the offset dx with physical_x = screen_x + dx. Returns 0
    when the span crosses a ring page boundary (the caller then
-   falls back to resetting the display scroll to 0). On V9938
-   the window is frozen: page 0, dx 0, always succeeds. */
+   falls back to resetting the display scroll to 0). On the
+   frozen paths the window never moves: page 0, dx 0, always
+   succeeds. */
 static int panel_view_at(int sx, int x0, int w, int *page, int *dx)
 {
     int slot;
-    if (!is_v9958) { *page = 0; *dx = 0; return 1; }
+    if (!scroll_on) { *page = 0; *dx = 0; return 1; }
     slot = (int)((sx + x0) & 511);
     if ((slot & 255) + w > 256) return 0;
     *page = slot >> 8;
@@ -2468,7 +2488,7 @@ static void draw_band_static(void)
     ACPAGE = (unsigned char)disp_page;
     boxfil(0, BAND_Y, 255, 211, C_BLACK, 0);
     boxfil(0, BAND_Y, 255, BAND_Y, C_BG2, 0);
-    if (is_v9958) {
+    if (scroll_on) {
         /* The separator line sits exactly ON the split line: the
            split handler's scroll reset, written when the raster
            reaches line 184, takes effect from line 185 - line 184
@@ -3094,10 +3114,10 @@ static void restore_panel_step(void)
     int ring = panel_view_at((int)scroll_x, 40, 176, &pg, &dx);
     while (n-- > 0 && restore_left < 22) {
         int lx = 40 + restore_left * 8;
-        if (is_v9958 && ring) {
+        if (scroll_on && ring) {
             int vx = (int)((scroll_x + lx) & 511);
             draw_slice(vx & 255, (vx >> 8), scroll_x + lx);
-        } else if (is_v9958) {
+        } else if (scroll_on) {
             draw_slice(lx, 0, lx);   /* fallback: display reset to 0 */
         } else {
             draw_slice(lx, 0, base_x + lx);
@@ -3113,7 +3133,7 @@ static void restore_panel_step(void)
        the spare copy is not taken (streaming would overwrite
        it anyway), so the put-back runs only on the
        frozen-window paths. */
-    if (was < 22 && restore_left >= 22 && !(is_v9958 && ring))
+    if (was < 22 && restore_left >= 22 && !(scroll_on && ring))
         planet8_restore();
 }
 
@@ -3249,7 +3269,7 @@ static int play_game(void)
        the GPL rect - in ring mode it is not taken (the panel
        lands in page 1; see restore_panel_step), and the ring
        Earth has scrolled off long before the boss either way. */
-    if (is_v9958)
+    if (scroll_on)
         blit_planet8_ring("GPLF8   DAT", GPLF_WX, GPLF_Y,
                           GPLF_W, GPLF_H);
     else
@@ -3259,7 +3279,7 @@ static int play_game(void)
        world columns 398..511) where streaming overwrites it
        before the boss, and the restore never reads it - take
        it only on the frozen-window paths. */
-    if (!is_v9958 || !panel_view_at(STAGE_LEN, 40, 176, &pg_tmp, &dx_tmp))
+    if (!scroll_on || !panel_view_at(STAGE_LEN, 40, 176, &pg_tmp, &dx_tmp))
         planet8_backup();
     draw_hud_static();
     draw_hud_values();
@@ -3380,8 +3400,8 @@ static int title_screen(void)
 {
     int blink = 0, frame = 0, idle = 0;
     audio_silence();
-    if (is_v9958) {
-        disp_page = 0;   /* V9958 ring: pages 0+1, left = 0 */
+    if (scroll_on) {
+        disp_page = 0;   /* ring: pages 0+1, left = 0 */
         vdp_reg(25, 0);   /* release the two-page ring (SP2/MSK) */
         vdp_reg(2, 0x1f);
         vdp_reg(26, 0);
@@ -3467,6 +3487,15 @@ int main(void)
     trace_step(2, 0);
     detect_vdp();
     cpu_init_r800();
+    /* The two-page scroll ring is a turboR-only feature: V9958
+       present AND the R800 actually selected. An MSX2+ (V9958 +
+       Z80) gets scroll_on = 0 and runs the frozen path. (Written
+       as a plain if: sccz80 mis-compiles the equivalent
+       (a && b) ? 1 : 0 ternary - it keys the result off the
+       carry flag left by the && evaluation, yielding 0 always;
+       verified in the generated assembly and at runtime.) */
+    scroll_on = 0;
+    if (is_v9958 && is_turbor) scroll_on = 1;
     trace_step(3, 0);
     init_sqrt_tab();
     trace_step(4, 0);
@@ -3627,7 +3656,7 @@ _sph_body:
     ld      a,(_hook_do_apply)
     or      a
     jr      z,_sph_arm2
-    ld      a,(_is_v9958)
+    ld      a,(_scroll_on)
     or      a
     jr      z,_sph_adj1
     ld      a,(_cur_r26)
@@ -3663,7 +3692,7 @@ _sph_stage2:
     ld      a,(_hook_do_apply)
     or      a
     jr      z,_sph_arm1
-    ld      a,(_is_v9958)
+    ld      a,(_scroll_on)
     or      a
     jr      z,_sph_adj2
     xor     a

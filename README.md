@@ -20,9 +20,9 @@ ECHO / HALO** — and at the end of the stage the
 **ABYSS PRISM LEVIATHAN** waits in front of the Earth, its core
 shielded by four orbiting shards.
 
-The background scrolls on MSX2+ / MSX turboR (V9958). On
-MSX2 (V9938) the background stays fixed, and the game itself
-is identical.
+The background scrolls on MSX turboR only. On MSX2+ and
+MSX2 the background stays fixed, and the game itself is
+identical.
 
 ## Play / Download
 
@@ -30,9 +30,9 @@ is identical.
 - [LUMINA.DSK](dist/LUMINA.DSK) — bootable 720 KB disk image (starts automatically)
 - [LUMINA.COM](dist/LUMINA.COM) — the MSX-DOS program on its own
 
-Current build :`LUMINA.COM` 49,434 bytes,
-MD5 `0c7a0dcf0900a720d873215296874718`;
-`LUMINA.DSK` MD5 `b732bfbd03f73ae7377b83c5ec88d873`.
+Current build :`LUMINA.COM` 49,463 bytes,
+MD5 `5d3200d958d4f1605f0759b79b2f1681`;
+`LUMINA.DSK` MD5 `a154abe2001776b90a253a965e1667de`.
 
 ## Controls
 
@@ -60,7 +60,7 @@ adding the data files (`data/tpl8.dat`, `data/gpl8.dat`,
 
 - Requires MSX2 or higher (SCREEN 8, i.e. V9938 or later).
   MSX1 is not supported.
-- On V9958 (MSX2+ / turboR) the background scrolls in
-  hardware. On V9938 (MSX2) the background stays fixed
+- On MSX turboR the background scrolls in hardware.
+  On MSX2+ and MSX2 the background stays fixed
   (the game itself is identical).
 - Sound is PSG only.
