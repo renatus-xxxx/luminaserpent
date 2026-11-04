@@ -15,6 +15,15 @@
 # (yamayamaru-storage-place, source-code_2023-09-30).
 # NOTE: msxalib.c GETSTAT carries a local patch (B = 0 forced on
 # its VDP port accesses); see the comment at GETSTAT in the source.
+#
+# Two deliverables from the same .COM:
+#   make dsk   -> build-linux/LUMINA.DSK  (720 KB floppy, day-to-day checks)
+#   make rom   -> build-linux/LUMINA.ROM  (LSX-Dodgers cartridge for
+#                 MSX Simple Mega Flash: ASCII 8K mapper, auto-boots
+#                 into the game via the GO.COM stub loader;
+#                 see tools/make_rom.py, tools/lsx/ and
+#                 tools/ROM-NOTES.md)
+#   make both  -> both of the above (or run ./build_both.sh)
 
 Z88DK_DIR ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../z88dk)
 export ZCCCFG := $(Z88DK_DIR)/lib/config
@@ -29,6 +38,10 @@ DEFS   :=
 DATA8  := data/tpl8.dat data/gpl8.dat data/gplf8.dat data/logo.dat data/spark.dat
 DSK_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))../try16/bin/TRY16.DSK
 DSK_TOOL := tools/make_dsk.py
+ROM    := $(BUILD)/LUMINA.ROM
+ROMSYS := tools/lsx/LDMSX.BIN
+ROMGO  := tools/lsx/GO.COM
+ROM_TOOL := tools/make_rom.py
 
 all: $(TARGET)
 
@@ -43,7 +56,14 @@ dsk: $(DSK)
 $(DSK): $(TARGET) $(DSK_TEMPLATE) $(DSK_TOOL) $(DATA8)
 	python3 $(DSK_TOOL) $(DSK_TEMPLATE) $(TARGET) $(DSK) $(DATA8)
 
+rom: $(ROM)
+
+$(ROM): $(DSK) $(ROMSYS) $(ROMGO) $(ROM_TOOL)
+	python3 $(ROM_TOOL) $(ROMSYS) $(ROMGO) $(DSK) $(ROM)
+
+both: dsk rom
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all dsk clean
+.PHONY: all dsk rom both clean
