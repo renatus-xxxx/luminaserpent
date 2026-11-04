@@ -1,0 +1,19 @@
+Tablacus DISK ROM Lite - vendored system binary for the ROM build.
+
+NOTE    : The DISKROM64K.BIN in this directory is NOT the stock
+          release binary. It is a locally patched build of
+          v0.7.4.4 (FILE.ASM LDIR_PAGE1 termination fix, same
+          change as upstream PR #3). See README.md in this
+          directory for the two MD5s and the details.
+
+Version : 0.7.4.4 (GitHub release, 2026-09-08) + local patch
+Source  : https://github.com/tablacus/TablacusDiskRomLite/releases
+File    : DISKROM64K.BIN (8 KB, ASCII 8K bank, 64 KB RAM / Ese-DOS version)
+License : MIT (see LICENSE in this directory, Copyright (c) 2023 Gaku)
+
+Only the 64 KB version is vendored: LUMINA SERPENT is an MSX-DOS .COM
+program, so the ROM must boot Ese-DOS (dosformsx) from the disk image,
+which requires the 64 KB version of the DISK ROM Lite system.
+
+The matching flash cartridge is MSX Simple Mega Flash (v9938):
+mapper switch = ASCII 8K, clipping switch = ROM file size.

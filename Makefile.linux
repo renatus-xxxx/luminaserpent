@@ -24,6 +24,11 @@
 #                 see tools/make_rom.py, tools/lsx/ and
 #                 tools/ROM-NOTES.md)
 #   make both  -> both of the above (or run ./build_both.sh)
+#   make rom-lite -> build-linux/LUMINA-LITE.ROM (Tablacus DISK
+#                 ROM Lite cartridge using the locally patched
+#                 DISKROM64K.BIN in tools/tablacus/: 8 KB system +
+#                 dos2formsx game disk, AUTOEXEC auto-boots the
+#                 game; see tools/make_rom_lite.py)
 
 Z88DK_DIR ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../z88dk)
 export ZCCCFG := $(Z88DK_DIR)/lib/config
@@ -42,6 +47,10 @@ ROM    := $(BUILD)/LUMINA.ROM
 ROMSYS := tools/lsx/LDMSX.BIN
 ROMGO  := tools/lsx/GO.COM
 ROM_TOOL := tools/make_rom.py
+LITEROM := $(BUILD)/LUMINA-LITE.ROM
+LITESYS := tools/tablacus/DISKROM64K.BIN
+LITETPL := tools/tablacus/DOS2FORMSX.DSK
+LITE_TOOL := tools/make_rom_lite.py
 
 all: $(TARGET)
 
@@ -63,7 +72,12 @@ $(ROM): $(DSK) $(ROMSYS) $(ROMGO) $(ROM_TOOL)
 
 both: dsk rom
 
+rom-lite: $(LITEROM)
+
+$(LITEROM): $(TARGET) $(LITESYS) $(LITETPL) $(LITE_TOOL) $(DATA8)
+	python3 $(LITE_TOOL) $(LITESYS) $(LITETPL) $(TARGET) $(LITEROM) $(DATA8)
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all dsk rom both clean
+.PHONY: all dsk rom both rom-lite clean
