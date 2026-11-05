@@ -65,3 +65,9 @@ adding the data files (`data/tpl8.dat`, `data/gpl8.dat`,
   On MSX2+ and MSX2 the background stays fixed
   (the game itself is identical).
 - Sound is PSG only.
+
+## Development
+
+This project is built and verified with assistance from Muse, Meta's personal AI agent — including build automation, emulator testing, and documentation.
+
+If you're curious what a personal agent can do, try Muse here: https://muse.ai/join — enter my invite code **RARMB6** under Settings > Redeem within 48 hours of joining, and we'll both get bonus tokens.
